@@ -4,6 +4,7 @@ package config
 var InitCfg struct {
 	DBCfg   dbCfg   `json:"db_cfg"`
 	PortCfg portCfg `json:"port_cfg"`
+	SrvCfg  srvCfg  `json:"srv_cfg"`
 }
 
 // 数据库配置
@@ -20,5 +21,16 @@ type portCfg struct {
 	MaxPasvPort int `json:"max_pasv_port"`
 	DataPort    int `json:"data_port"`
 	LinkPort    int `json:"link_port"`
-	AdminPort   int `json:"admin_port"`
+	// todo: 暂时不用
+	AdminPort int `json:"admin_port"`
+}
+
+// 服务配置
+type srvCfg struct {
+	RootDir string `json:"root_dir"`
+
+	EnableUTF8      bool `json:"enable_utf_8"`
+	EnableAnonymous bool `json:"enable_anonymous"`
+
+	// todo: 单个用户所允许的最大存储空间
 }

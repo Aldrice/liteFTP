@@ -1,0 +1,20 @@
+{
+  "db_cfg": {
+    "driver_name": "",
+    "db_source": "",
+    "cache_mode": "",
+    "foreign_key": 1
+  },
+  "port_cfg": {
+    "min_pasv_port": 40000,
+    "max_pasv_port": 50000,
+    "data_port": 20,
+    "link_port": 21,
+    "admin_port": 32080
+  },
+  "srv_cfg": {
+    "root_dir": "./file/user",
+    "enable_utf_8": true,
+    "enable_anonymous": true
+  }
+}
