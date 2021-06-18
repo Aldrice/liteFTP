@@ -19,12 +19,12 @@ var OPTS = &command{
 		if !conn.server.enableUTF8 {
 			return &response{
 				code: 202,
-				info: "server do not allow utf_8 encoding transmission",
+				info: "Server do not allow utf_8 encoding transmission.",
 			}, nil
 		}
 		return &response{
 			code: 200,
-			info: "server are now transmit with utf_8 encoding",
+			info: "Server are now transmit with utf_8 encoding.",
 		}, nil
 	},
 }
@@ -36,5 +36,19 @@ var PASV = &command{
 	demandParam: true,
 	cmdFunction: func(conn *Connection, params string) (*response, error) {
 		return respParamsError, nil
+	},
+}
+
+var QUIT = &command{
+	name:        "QUIT",
+	demandAuth:  false,
+	demandLogin: false,
+	demandParam: false,
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+		_ = conn.linkConn.Close()
+		return &response{
+			code: 221,
+			info: "Bye.",
+		}, nil
 	},
 }

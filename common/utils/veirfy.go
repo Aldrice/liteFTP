@@ -2,6 +2,7 @@ package utils
 
 import (
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -27,16 +28,17 @@ func VerifyPath(p string) (bool, error) {
 	return false, err
 }
 
-// VerifyFolderName 检查文件夹名是否符合规范
-func VerifyFolderName(n string) bool {
+// VerifyFolderName 输入路径, 检查文件夹名是否符合规范
+func VerifyFolderName(path string) bool {
+	name := filepath.Base(path)
 	switch runtime.GOOS {
 	case "windows":
-		if strings.ContainsAny(n, "\\/:*?\"<>|.") {
+		if strings.ContainsAny(name, "\\/:*?\"<>|") {
 			return false
 		}
 		return true
 	case "linux":
-		if strings.ContainsAny(n, "/ ") {
+		if strings.ContainsAny(name, "/ ") {
 			return false
 		}
 		return true

@@ -32,7 +32,10 @@ type Connection struct {
 }
 
 func (conn *Connection) handle() {
-	defer conn.linkConn.Close()
+	defer func() {
+		log.Print(fmt.Sprintf("断开一个连接, 连接ID: %d", conn.connectID))
+		_ = conn.linkConn.Close()
+	}()
 
 	if err := conn.sendText(respWelcome); err != nil {
 		log.Print("出错了")
@@ -42,9 +45,16 @@ func (conn *Connection) handle() {
 		// 读指令
 		res, err := conn.readCommand()
 		if err != nil {
+			// 如果连接已经断开, 则直接关闭连接
+			if errors.Is(err, net.ErrClosed) {
+				break
+			}
 			log.Print("指令处理出错", err.Error())
 		}
 		if err := conn.sendText(res); err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				break
+			}
 			log.Print("结果回送出错", err.Error())
 		}
 	}
@@ -98,6 +108,12 @@ func (conn *Connection) verifyLogin() *response {
 		}
 	}
 	return nil
+}
+
+func (conn *Connection) processPath(path string) string {
+	// todo: 此处有错误要处理
+
+	return ""
 }
 
 /*// processPath 处理用户的路径参数

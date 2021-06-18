@@ -6,18 +6,19 @@ import (
 	"path/filepath"
 )
 
+// MKD 注: 只允许用户逐级创建文件夹
 var MKD = &command{
 	name:        "MKD",
 	demandAuth:  false,
 	demandLogin: true,
 	demandParam: true,
-	// 只允许用户逐级创建文件夹
+	// todo: 仍然不可用
 	cmdFunction: func(conn *Connection, params string) (*response, error) {
 		ps, ok := utils.VerifyParams(params, 1)
 		if !ok {
 			return respParamsError, nil
 		}
-		// 检查文件名是否正常
+		// 检查文件夹名是否正常
 		if !utils.VerifyFolderName(ps[0]) {
 			return &response{
 				code: 550,
@@ -27,7 +28,7 @@ var MKD = &command{
 		if err := os.Mkdir(filepath.Join(conn.liedDir, ps[0]), os.ModePerm); err != nil {
 			return &response{
 				code: 550,
-				info: "an error occur when the server creating the new file",
+				info: "an error occur when the server creating the new file, " + err.Error(),
 			}, err
 		}
 		return createResponse(250, "directory created"), nil

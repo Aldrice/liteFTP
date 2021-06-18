@@ -42,7 +42,7 @@ func NewServer() *server {
 	// 检查服务单元的存储路径是否有效
 	exist, err := utils.VerifyPath(s.rootDir)
 	if err != nil {
-		log.Fatal("服务根目录 路径检查出错")
+		log.Fatal("服务器根目录 路径检查出错")
 	}
 	if !exist {
 		if err := os.MkdirAll(s.rootDir, os.ModePerm); err != nil {
@@ -88,7 +88,6 @@ func (s *server) Listen() error {
 	if err != nil {
 		return err
 	}
-	defer tcpListener.Close()
 	// 持续监听并建立连接
 	for {
 		tcpConn, err := tcpListener.AcceptTCP()

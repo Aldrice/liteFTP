@@ -15,10 +15,13 @@ func loadAllCommands() map[string]*command {
 		USER.name: USER, // USER 认证用户名
 		PASS.name: PASS, // PASS 认证密码
 		// control
+		QUIT.name: QUIT,
 		OPTS.name: OPTS,
 		PASV.name: PASV, // PASV 进入被动模式
 		// transmit
 		MKD.name: MKD, // MKD 创建目录
+		// todo: XMKD
+		"XMKD": MKD, // MKD 创建目录
 	}
 }
 
