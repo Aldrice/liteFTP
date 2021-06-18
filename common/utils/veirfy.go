@@ -10,7 +10,8 @@ import (
 // VerifyParams 用于检查参数数量是否符合预期, 返回true说明数量符合预期，并且返回参数数组
 func VerifyParams(ps string, n int) ([]string, bool) {
 	params := strings.Split(ps, " ")
-	if len(params) != n {
+	// 当截取得到的参数不同于预期时
+	if len(params) != n || params[0] == "" {
 		return nil, false
 	}
 	return params, true

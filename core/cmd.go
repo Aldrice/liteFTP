@@ -28,11 +28,13 @@ func loadAllCommands() commandList {
 		cmdList.loadCommand(NOOP)
 		cmdList.loadCommand(TYPE)
 		cmdList.loadCommand(CDUP)
+		cmdList.loadCommand(RMD)
+		cmdList.loadCommand(MKD)
+		cmdList.loadCommand(CWD)
 	}
 	// transmit
 	{
-		cmdList.loadCommand(MKD)
-		cmdList.loadCommand(CWD)
+
 	}
 	return cmdList
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/Aldrice/liteFTP/common/utils"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var OPTS = &command{
@@ -142,14 +143,15 @@ var MKD = &command{
 		if !utils.VerifyFolderName(ps[0]) {
 			return &response{
 				code: 550,
-				info: "The folder's name was unacceptable for the server's os.",
+				info: "The directory's name was unacceptable for the server's os.",
 			}, nil
 		}
+		// 处理路径
 		newPath := conn.processPath(ps[0])
 		if newPath == "" {
 			return &response{
 				code: 550,
-				info: "The path was not exist.",
+				info: "The path was not exist or no authorization to be processed.",
 			}, nil
 		}
 		if err := os.Mkdir(newPath, os.ModePerm); err != nil {
@@ -193,5 +195,38 @@ var CWD = &command{
 			code: 250,
 			info: "Okay.",
 		}, nil
+	},
+}
+
+var RMD = &command{
+	name:        []string{"RMD", "XRMD"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: true,
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+		// 检查参数数量
+		ps, ok := utils.VerifyParams(params, 1)
+		if !ok {
+			return respParamsError, nil
+		}
+
+		// 处理路径
+		newPath := strings.Replace(conn.processPath(ps[0]), "/", "\\", -1)
+		// 不允许用户删除根目录, 也不允许删除用户的工作路径下的目录
+		if newPath == "" || newPath == conn.authDir || newPath == conn.liedDir {
+			return &response{
+				code: 550,
+				info: "The path was not exist or no authorization to be processed.",
+			}, nil
+		}
+
+		// 执行删除
+		if err := os.Remove(newPath); err != nil {
+			return &response{
+				code: 550,
+				info: "An error occur when the server removing the specify file: " + err.Error(),
+			}, err
+		}
+		return createResponse(250, "Directory removed."), nil
 	},
 }

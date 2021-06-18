@@ -106,6 +106,7 @@ func (conn *Connection) verifyLogin() *response {
 // processPath 返回有效路径, 若返回的路径为空, 说明输入路径有误
 func (conn *Connection) processPath(path string) string {
 	// todo: 处理windows file explorer路径格式问题
+	// 路径为绝对路径的情况
 	if filepath.IsAbs(path) {
 		relPath, err := filepath.Rel(conn.authDir, path)
 		if err != nil || strings.Contains(relPath, "..") {
