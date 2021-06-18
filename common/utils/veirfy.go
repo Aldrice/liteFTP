@@ -48,3 +48,12 @@ func VerifyFolderName(path string) bool {
 		return false
 	}
 }
+
+// IsDir 检查是否是文件夹
+func IsDir(path string) bool {
+	s, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return s.IsDir()
+}

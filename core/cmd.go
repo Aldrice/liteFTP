@@ -31,6 +31,7 @@ func loadAllCommands() commandList {
 		cmdList.loadCommand(RMD)
 		cmdList.loadCommand(MKD)
 		cmdList.loadCommand(CWD)
+		cmdList.loadCommand(DELE)
 	}
 	// transmit
 	{

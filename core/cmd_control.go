@@ -102,10 +102,7 @@ var TYPE = &command{
 		if conn.server.binaryFlag {
 			return respSyntaxError, nil
 		}
-		return &response{
-			code: 200,
-			info: "Binary flag off.",
-		}, nil
+		return createResponse(200, "Binary flag off."), nil
 	},
 }
 
@@ -121,10 +118,10 @@ var CDUP = &command{
 				return respProcessError, err
 			}
 			if ok {
-				return &response{code: 200, info: "Okay."}, nil
+				return createResponse(200, "Okay."), nil
 			}
 		}
-		return &response{code: 550, info: "No further upper path."}, nil
+		return createResponse(550, "No further upper path."), nil
 	},
 }
 
@@ -176,25 +173,16 @@ var CWD = &command{
 		}
 		newPath := conn.processPath(ps[0])
 		if newPath == "" {
-			return &response{
-				code: 550,
-				info: fmt.Sprintf("%s: No such dictionary.", ps[0]),
-			}, nil
+			return createResponse(550, fmt.Sprintf("%s: No such dictionary.", ps[0])), nil
 		}
 		ok, err := conn.setLiedDir(newPath)
 		if err != nil {
 			return respProcessError, err
 		}
 		if !ok {
-			return &response{
-				code: 550,
-				info: fmt.Sprintf("%s: No such dictionary.", ps[0]),
-			}, nil
+			return createResponse(550, fmt.Sprintf("%s: No such dictionary.", ps[0])), nil
 		}
-		return &response{
-			code: 250,
-			info: "Okay.",
-		}, nil
+		return createResponse(250, "Okay."), nil
 	},
 }
 
@@ -209,24 +197,48 @@ var RMD = &command{
 		if !ok {
 			return respParamsError, nil
 		}
-
 		// 处理路径
 		newPath := strings.Replace(conn.processPath(ps[0]), "/", "\\", -1)
-		// 不允许用户删除根目录, 也不允许删除用户的工作路径下的目录
-		if newPath == "" || newPath == conn.authDir || newPath == conn.liedDir {
+		// 不允许用户删除根目录, 也不允许删除用户的工作路径下的目录, 也不允许删除文件
+		if newPath == "" || newPath == conn.authDir || newPath == conn.liedDir || !utils.IsDir(newPath) {
 			return &response{
 				code: 550,
 				info: "The path was not exist or no authorization to be processed.",
 			}, nil
 		}
-
 		// 执行删除
+		if err := os.Remove(newPath); err != nil {
+			return &response{
+				code: 550,
+				info: "An error occur when the server removing the specify dictionary: " + err.Error(),
+			}, err
+		}
+		return createResponse(250, "Directory removed."), nil
+	},
+}
+
+var DELE = &command{
+	name:        []string{"DELE"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: true,
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+		// 检查参数数量
+		ps, ok := utils.VerifyParams(params, 1)
+		if !ok {
+			return respParamsError, nil
+		}
+		// 处理路径
+		newPath := conn.processPath(ps[0])
+		if newPath == "" || utils.IsDir(newPath) {
+			return createResponse(550, "The file was not exist or no authorization to be processed."), nil
+		}
 		if err := os.Remove(newPath); err != nil {
 			return &response{
 				code: 550,
 				info: "An error occur when the server removing the specify file: " + err.Error(),
 			}, err
 		}
-		return createResponse(250, "Directory removed."), nil
+		return createResponse(250, "File removed."), nil
 	},
 }
