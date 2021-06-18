@@ -2,11 +2,11 @@ package core
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
-	"io"
+	"github.com/Aldrice/liteFTP/common/utils"
 	"log"
 	"net"
+	"path/filepath"
 	"strings"
 )
 
@@ -44,18 +44,14 @@ func (conn *Connection) handle() {
 	for {
 		// 读指令
 		res, err := conn.readCommand()
-		if err != nil {
-			// 如果连接已经断开, 则直接关闭连接
-			if errors.Is(err, net.ErrClosed) {
-				break
-			}
-			log.Print("指令处理出错", err.Error())
+		if err != nil && res == nil {
+			_ = conn.linkConn.Close()
+			return
 		}
+		log.Printf("response: %d %s", res.code, res.info)
 		if err := conn.sendText(res); err != nil {
-			if errors.Is(err, net.ErrClosed) {
-				break
-			}
-			log.Print("结果回送出错", err.Error())
+			_ = conn.linkConn.Close()
+			return
 		}
 	}
 }
@@ -71,15 +67,12 @@ func (conn *Connection) sendText(r *response) error {
 func (conn *Connection) readCommand() (*response, error) {
 	statement, err := conn.rt.ReadString('\n')
 	if err != nil {
-		// 用户输入语句有语法错误
-		if errors.Is(err, io.EOF) {
-			return respSyntaxError, err
-		}
-		// 执行出现错误
-		return respProcessError, err
+		// tcp连接中断
+		return nil, err
 	}
 	statement = strings.TrimRight(statement, "\r\n")
 	components := strings.SplitN(statement, " ", 2)
+	log.Println("request: " + statement)
 	// 指令匹配
 	c, exist := conn.server.command[strings.ToUpper(components[0])]
 	if !exist {
@@ -110,25 +103,29 @@ func (conn *Connection) verifyLogin() *response {
 	return nil
 }
 
+// processPath 返回有效路径, 若返回的路径为空, 说明输入路径有误
 func (conn *Connection) processPath(path string) string {
-	// todo: 此处有错误要处理
-
-	return ""
+	// todo: 处理windows file explorer路径格式问题
+	if filepath.IsAbs(path) {
+		relPath, err := filepath.Rel(conn.authDir, path)
+		if err != nil || strings.Contains(relPath, "..") {
+			return ""
+		}
+		return path
+	}
+	return filepath.Join(conn.liedDir, path)
 }
 
-/*// processPath 处理用户的路径参数
-func (conn *Connection) processPath(path string) string {
-	// todo: 处理windows路径
-
-	// todo: 仍然有问题
-	// 当路径为绝对路径时
-	newPath := path
-	if !filepath.IsAbs(path) {
-		newPath = filepath.Join(conn.authDir, path)
+// setLiedDir 设置当前连接的工作路径, 若路径不存在则报错
+func (conn *Connection) setLiedDir(path string) (bool, error) {
+	// 检查该路径是否存在
+	exist, err := utils.VerifyPath(path)
+	if err != nil {
+		return false, err
 	}
-	rel, err := filepath.Rel(conn.authDir, newPath)
-	if err != nil || strings.Contains(rel, "..") {
-		return conn.authDir
+	if !exist {
+		return false, nil
 	}
-	return newPath
-}*/
+	conn.liedDir = path
+	return true, nil
+}

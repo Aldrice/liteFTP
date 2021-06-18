@@ -15,6 +15,7 @@
   "srv_cfg": {
     "root_dir": "./file/user",
     "enable_utf_8": true,
-    "enable_anonymous": true
+    "enable_anonymous": true,
+    "binary_flag": false
   }
 }

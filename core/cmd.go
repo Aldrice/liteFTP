@@ -1,27 +1,45 @@
 package core
 
-// todo: 成员变量 name 可删除
+type commandList map[string]*command
+
 type command struct {
-	name        string
+	name        []string
 	demandAuth  bool
 	demandLogin bool
 	demandParam bool
 	cmdFunction func(conn *Connection, params string) (*response, error)
 }
 
-func loadAllCommands() map[string]*command {
-	return map[string]*command{
-		// auth
-		USER.name: USER, // USER 认证用户名
-		PASS.name: PASS, // PASS 认证密码
-		// control
-		QUIT.name: QUIT,
-		OPTS.name: OPTS,
-		PASV.name: PASV, // PASV 进入被动模式
-		// transmit
-		MKD.name: MKD, // MKD 创建目录
-		// todo: XMKD
-		"XMKD": MKD, // MKD 创建目录
+// todo: 仍需要优化, 指令集合 -> 载入指令集合
+func loadAllCommands() commandList {
+	cmdList := make(commandList)
+	// auth
+	{
+		cmdList.loadCommand(USER)
+		cmdList.loadCommand(PASS)
+	}
+	// control
+	{
+		cmdList.loadCommand(OPTS)
+		cmdList.loadCommand(PASV)
+		cmdList.loadCommand(QUIT)
+		cmdList.loadCommand(PWD)
+		cmdList.loadCommand(SYST)
+		cmdList.loadCommand(NOOP)
+		cmdList.loadCommand(TYPE)
+		cmdList.loadCommand(CDUP)
+	}
+	// transmit
+	{
+		cmdList.loadCommand(MKD)
+		cmdList.loadCommand(CWD)
+	}
+	return cmdList
+}
+
+func (cmd *commandList) loadCommand(c *command) {
+	for _, n := range c.name {
+		(*cmd)[n] = c
 	}
 }
 

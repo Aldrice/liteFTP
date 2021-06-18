@@ -15,7 +15,7 @@ const anonymous = "anonymous"
 
 type server struct {
 	// 服务器支持的指令集
-	command map[string]*command
+	command commandList
 	// 被动模式下最大端口
 	pasvMaxPort int
 	// 被动模式下最小端口
@@ -26,17 +26,24 @@ type server struct {
 	enableAnonymous bool
 	// 服务器文件存储基址
 	rootDir string
+	// 服务器是否允许二进制传输
+	binaryFlag bool
 	// todo: 权限管理
 }
 
 func NewServer() *server {
+	absPath, err := filepath.Abs(InitCfg.SrvCfg.RootDir)
+	if err != nil {
+		log.Fatal("路径转换出错")
+	}
 	s := &server{
 		command:         loadAllCommands(),
 		pasvMaxPort:     InitCfg.PortCfg.MaxPasvPort,
 		pasvMinPort:     InitCfg.PortCfg.MinPasvPort,
 		enableUTF8:      InitCfg.SrvCfg.EnableUTF8,
 		enableAnonymous: InitCfg.SrvCfg.EnableAnonymous,
-		rootDir:         InitCfg.SrvCfg.RootDir,
+		rootDir:         absPath,
+		binaryFlag:      InitCfg.SrvCfg.BinaryFlag,
 	}
 
 	// 检查服务单元的存储路径是否有效
@@ -63,6 +70,8 @@ func NewServer() *server {
 			}
 		}
 	}
+
+	log.Print("服务器搭建成功")
 	return s
 }
 

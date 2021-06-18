@@ -6,7 +6,7 @@ import (
 )
 
 var USER = &command{
-	name:        "USER",
+	name:        []string{"USER"},
 	demandAuth:  false,
 	demandLogin: false,
 	demandParam: true,
@@ -21,7 +21,7 @@ var USER = &command{
 			if !conn.server.enableAnonymous {
 				return &response{
 					code: 530,
-					info: "server do not allow anonymous user",
+					info: "Server do not allow anonymous user.",
 				}, nil
 			}
 			conn.isAnonymous = true
@@ -32,7 +32,7 @@ var USER = &command{
 }
 
 var PASS = &command{
-	name:        "PASS",
+	name:        []string{"PASS"},
 	demandAuth:  false,
 	demandLogin: false,
 	demandParam: true,
