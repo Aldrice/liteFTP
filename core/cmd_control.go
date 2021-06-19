@@ -235,3 +235,21 @@ var DELE = &command{
 		return createResponse(250, "File removed."), nil
 	},
 }
+
+var PORT = &command{
+	name:        []string{"PORT"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: true,
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+		ps := strings.SplitN(params, ",", 6)
+		addr := utils.ProcessAddr(ps)
+		if addr == nil {
+			return createResponse(501, "The host port parameter is invalid."), nil
+		}
+		if err := conn.establishConn(addr); err != nil {
+			return createResponse(550, "An error occur when establishing the connection: "+err.Error()), err
+		}
+		return createResponse(200, "Establishing connection succeed."), nil
+	},
+}

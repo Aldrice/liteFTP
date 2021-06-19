@@ -26,6 +26,8 @@ type Connection struct {
 
 	dataConn *net.TCPConn
 
+	isPassive bool
+
 	// todo: 该用户的信息, 权限, IP地址, 是否开启被动模式等等
 	isLogin     bool
 	isAnonymous bool
@@ -57,6 +59,22 @@ func (conn *Connection) handle() {
 			return
 		}
 	}
+}
+
+// todo: 被动模式下连接的建立
+func (conn *Connection) establishConn(addr *net.TCPAddr) error {
+	var tcpConn *net.TCPConn
+	var err error
+	if conn.isPassive {
+
+	} else {
+		tcpConn, err = net.DialTCP("tcp", nil, addr)
+		if err != nil {
+			return err
+		}
+	}
+	conn.dataConn = tcpConn
+	return nil
 }
 
 func (conn *Connection) sendText(r *response) error {

@@ -82,6 +82,7 @@ func (s *server) newConnection(conn *net.TCPConn) *Connection {
 		rt:        bufio.NewReader(conn),
 		connectID: cid,
 		server:    s,
+		isPassive: false,
 	}
 	cid++
 	return r
