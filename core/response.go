@@ -1,5 +1,6 @@
 package core
 
+// todo: 多行回复规范
 type response struct {
 	code int
 	info string

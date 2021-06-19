@@ -2,12 +2,15 @@ package core
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"github.com/Aldrice/liteFTP/common/utils"
+	"io"
 	"log"
 	"net"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // 连接的ID号
@@ -90,6 +93,30 @@ func (conn *Connection) readCommand() (*response, error) {
 		return c.cmdFunction(conn, components[1])
 	}
 	return c.cmdFunction(conn, "")
+}
+
+func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*response, error) {
+	// todo: 开始前检查连接状况
+	if err := conn.sendText(createResponse(125, "Starting a data transport")); err != nil {
+		return createResponse(1, "An error occur when sending text to client: "+err.Error()), err
+	}
+	// 等待对方连接
+	for {
+		if conn.dataConn != nil {
+			break
+		}
+		if err := ctx.Err(); err != nil {
+			return createResponse(550, "Waiting transport time out."), nil
+		}
+		time.Sleep(time.Millisecond * 100)
+		log.Print("Waiting transport...")
+	}
+	// 接收数据
+	size, err := io.Copy(wt, conn.dataConn)
+	if err != nil {
+		return createResponse(451, "An error occur when receiving the data: "+err.Error()), err
+	}
+	return createResponse(226, fmt.Sprintf("Received complete, data Size: %d", size)), nil
 }
 
 // verifyLogin 检查用户登录状态，若已经登录，则返回错误信息

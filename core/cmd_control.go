@@ -54,19 +54,6 @@ var QUIT = &command{
 	},
 }
 
-var PWD = &command{
-	name:        []string{"PWD", "XPWD"},
-	demandAuth:  false,
-	demandLogin: true,
-	demandParam: false,
-	cmdFunction: func(conn *Connection, params string) (*response, error) {
-		return &response{
-			code: 257,
-			info: fmt.Sprintf("\"%s\"", conn.liedDir),
-		}, nil
-	},
-}
-
 var SYST = &command{
 	name:        []string{"SYST"},
 	demandAuth:  false,
@@ -136,13 +123,6 @@ var MKD = &command{
 		if !ok {
 			return respParamsError, nil
 		}
-		// 检查文件夹名是否正常
-		if !utils.VerifyFolderName(ps[0]) {
-			return &response{
-				code: 550,
-				info: "The directory's name was unacceptable for the server's os.",
-			}, nil
-		}
 		// 处理路径
 		newPath := conn.processPath(ps[0])
 		if newPath == "" {
@@ -158,6 +138,19 @@ var MKD = &command{
 			}, err
 		}
 		return createResponse(250, "Directory created."), nil
+	},
+}
+
+var PWD = &command{
+	name:        []string{"PWD", "XPWD"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: false,
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+		return &response{
+			code: 257,
+			info: fmt.Sprintf("\"%s\"", conn.liedDir),
+		}, nil
 	},
 }
 
