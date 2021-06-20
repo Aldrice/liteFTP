@@ -22,6 +22,7 @@ func loadAllCommands() commandList {
 	{
 		cmdList.loadCommand(OPTS)
 		cmdList.loadCommand(PASV)
+		cmdList.loadCommand(FEAT)
 		cmdList.loadCommand(QUIT)
 		cmdList.loadCommand(PWD)
 		cmdList.loadCommand(SYST)
@@ -33,11 +34,15 @@ func loadAllCommands() commandList {
 		cmdList.loadCommand(CWD)
 		cmdList.loadCommand(DELE)
 		cmdList.loadCommand(PORT)
+		cmdList.loadCommand(SIZE)
+		cmdList.loadCommand(RNFR)
+		cmdList.loadCommand(RNTO)
 	}
 	// transmit
 	{
 		cmdList.loadCommand(STOR)
 		cmdList.loadCommand(LIST)
+		cmdList.loadCommand(RETR)
 	}
 	return cmdList
 }

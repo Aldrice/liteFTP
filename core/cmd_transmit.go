@@ -45,7 +45,7 @@ var LIST = &command{
 	demandLogin: true,
 	demandParam: false,
 	cmdFunction: func(conn *Connection, params string) (*response, error) {
-		path := conn.liedDir
+		path := conn.workDir
 		if params != "" {
 			ps, ok := utils.VerifyParams(params, 1)
 			if !ok {
@@ -75,6 +75,39 @@ var LIST = &command{
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
-		return conn.writeData(ctx, strings.NewReader(utils.FormatFileList(files)), "Transferring the dir entries.")
+		if err := conn.sendText(createResponse(125, "Transferring the dir entries.")); err != nil {
+			return createResponse(1, "An error occur when sending text to client: "+err.Error()), err
+		}
+		return conn.writeData(ctx, strings.NewReader(utils.FormatFileList(files)))
+	},
+}
+
+var RETR = &command{
+	name:        []string{"RETR"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: true,
+	// todo: 解决文件名乱码的问题
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+		ps, ok := utils.VerifyParams(params, 1)
+		if !ok {
+			return respParamsError, nil
+		}
+		newPath := conn.processPath(ps[0])
+		if newPath == "" || utils.IsDir(newPath) {
+			return createResponse(550, "The path wasn't exist or no authorization to process."), nil
+		}
+
+		file, err := os.Open(newPath)
+		if err != nil {
+			return createResponse(450, "An error occur when opening the file: "+err.Error()), err
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+
+		if err := conn.sendText(createResponse(125, "Transferring the specify file.")); err != nil {
+			return createResponse(1, "An error occur when sending text to client: "+err.Error()), err
+		}
+		return conn.writeData(ctx, file)
 	},
 }

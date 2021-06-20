@@ -44,7 +44,7 @@ var PASS = &command{
 		if conn.isAnonymous {
 			conn.isLogin = true
 			conn.authDir = filepath.Join(conn.server.rootDir, conn.temp)
-			conn.liedDir = conn.authDir
+			conn.workDir = conn.authDir
 			return respLoginSuccess, nil
 		}
 		// todo: 实现登录状态下的相关处理

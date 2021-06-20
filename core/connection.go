@@ -33,7 +33,8 @@ type Connection struct {
 	isAnonymous bool
 	temp        string
 	authDir     string // 有权限的最大根目录
-	liedDir     string // 目前所在的目录
+	workDir     string // 目前所在的目录
+	renamePath  string // 要移动的文件路径
 }
 
 func (conn *Connection) handle() {
@@ -139,10 +140,7 @@ func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*response, 
 	return createResponse(226, fmt.Sprintf("Receive complete, data size: %d", size)), nil
 }
 
-func (conn *Connection) writeData(ctx context.Context, rd io.Reader, msg string) (*response, error) {
-	if err := conn.sendText(createResponse(125, msg)); err != nil {
-		return createResponse(1, "An error occur when sending text to client: "+err.Error()), err
-	}
+func (conn *Connection) writeData(ctx context.Context, rd io.Reader) (*response, error) {
 	// 等待连接
 	for {
 		// 被动情况下的处理
@@ -187,7 +185,7 @@ func (conn *Connection) processPath(path string) string {
 		}
 		return path
 	}
-	return filepath.Join(conn.liedDir, path)
+	return filepath.Join(conn.workDir, path)
 }
 
 // setLiedDir 设置当前连接的工作路径, 若路径不存在则报错
@@ -200,6 +198,6 @@ func (conn *Connection) setLiedDir(path string) (bool, error) {
 	if !exist {
 		return false, nil
 	}
-	conn.liedDir = path
+	conn.workDir = path
 	return true, nil
 }

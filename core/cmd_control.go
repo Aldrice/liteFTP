@@ -43,6 +43,17 @@ var PASV = &command{
 	},
 }
 
+var FEAT = &command{
+	name:        []string{"FEAT"},
+	demandAuth:  false,
+	demandLogin: false,
+	demandParam: false,
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+
+		return nil, nil
+	},
+}
+
 var QUIT = &command{
 	name:        []string{"QUIT"},
 	demandAuth:  false,
@@ -99,8 +110,8 @@ var CDUP = &command{
 	demandLogin: true,
 	demandParam: false,
 	cmdFunction: func(conn *Connection, params string) (*response, error) {
-		if conn.liedDir != conn.authDir {
-			ok, err := conn.setLiedDir(filepath.Dir(conn.liedDir))
+		if conn.workDir != conn.authDir {
+			ok, err := conn.setLiedDir(filepath.Dir(conn.workDir))
 			if err != nil {
 				return respProcessError, err
 			}
@@ -149,7 +160,7 @@ var PWD = &command{
 	cmdFunction: func(conn *Connection, params string) (*response, error) {
 		return &response{
 			code: 257,
-			info: fmt.Sprintf("\"%s\"", conn.liedDir),
+			info: fmt.Sprintf("\"%s\"", conn.workDir),
 		}, nil
 	},
 }
@@ -193,7 +204,7 @@ var RMD = &command{
 		// 处理路径
 		newPath := strings.Replace(conn.processPath(ps[0]), "/", "\\", -1)
 		// 不允许用户删除根目录, 也不允许删除用户的工作路径下的目录, 也不允许删除文件
-		if newPath == "" || newPath == conn.authDir || newPath == conn.liedDir || !utils.IsDir(newPath) {
+		if newPath == "" || newPath == conn.authDir || newPath == conn.workDir || !utils.IsDir(newPath) {
 			return &response{
 				code: 550,
 				info: "The path was not exist or no authorization to be processed.",
@@ -251,5 +262,94 @@ var PORT = &command{
 			return createResponse(550, "An error occur when establishing the connection: "+err.Error()), err
 		}
 		return createResponse(200, "Establishing connection succeed."), nil
+	},
+}
+
+var SIZE = &command{
+	name:        []string{"SIZE"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: true,
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+		// 检查参数数量
+		ps, ok := utils.VerifyParams(params, 1)
+		if !ok {
+			return respParamsError, nil
+		}
+		// 检查文件是否存在以及是否有权限访问
+		newPath := conn.processPath(ps[0])
+		if newPath == "" {
+			return createResponse(550, "The file wasn't exist or no authorization to process."), nil
+		}
+		fileState, err := os.Stat(newPath)
+		if err != nil {
+			return createResponse(550, "An error occur when stating the file: "+err.Error()), err
+		}
+		if fileState.IsDir() {
+			return createResponse(550, "The file wasn't exist or no authorization to process."), nil
+		}
+		return createResponse(213, fmt.Sprintf("%d", fileState.Size())), nil
+	},
+}
+
+var RNFR = &command{
+	name:        []string{"RNFR"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: true,
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+		// 检查参数数量
+		ps, ok := utils.VerifyParams(params, 1)
+		if !ok {
+			return respParamsError, nil
+		}
+		// 检查文件是否有权限访问
+		newPath := conn.processPath(ps[0])
+		if newPath == "" {
+			return createResponse(550, "The path wasn't exist or no authorization to process."), nil
+		}
+		// 检查文件或文件夹是否存在
+		exist, err := utils.VerifyPath(newPath)
+		if err != nil {
+			return createResponse(550, "An error occur when verifying the file: "+err.Error()), err
+		}
+		if !exist {
+			return createResponse(550, "The path wasn't exist or no authorization to process."), nil
+		}
+		// 记录原文件或文件夹位置
+		conn.renamePath = newPath
+		return createResponse(350, "Waiting for next instruction."), nil
+	},
+}
+
+var RNTO = &command{
+	name:        []string{"RNTO"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: true,
+	cmdFunction: func(conn *Connection, params string) (*response, error) {
+		// 检查参数数量
+		ps, ok := utils.VerifyParams(params, 1)
+		if !ok {
+			return respParamsError, nil
+		}
+		// 检查文件是否存在以及是否有权限访问
+		newPath := conn.processPath(ps[0])
+		if newPath == "" {
+			return createResponse(550, "The path wasn't exist or no authorization to process."), nil
+		}
+		// 检查现有路径是否已有同名文件
+		exist, err := utils.VerifyPath(newPath)
+		if err != nil {
+			return createResponse(550, "An error occur when verifying the file: "+err.Error()), err
+		}
+		if exist {
+			return createResponse(553, "An file already exist in this path."), nil
+		}
+		// 移动文件或文件夹
+		if err := os.Rename(conn.renamePath, newPath); err != nil {
+			return createResponse(553, "An error occur when renaming the file: "+err.Error()), err
+		}
+		return createResponse(250, "File renamed."), nil
 	},
 }
