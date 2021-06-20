@@ -15,7 +15,7 @@ const anonymous = "anonymous"
 
 type server struct {
 	// 服务器支持的指令集
-	command commandList
+	command cmdMap
 	// 被动模式下最大端口
 	pasvMaxPort int
 	// 被动模式下最小端口
@@ -37,7 +37,7 @@ func NewServer() *server {
 		log.Fatal("路径转换出错")
 	}
 	s := &server{
-		command:         loadAllCommands(),
+		command:         loadAllCommands(cmdList),
 		pasvMaxPort:     InitCfg.PortCfg.MaxPasvPort,
 		pasvMinPort:     InitCfg.PortCfg.MinPasvPort,
 		enableUTF8:      InitCfg.SrvCfg.EnableUTF8,
