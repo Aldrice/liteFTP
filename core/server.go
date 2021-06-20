@@ -79,7 +79,7 @@ func (s *server) newConnection(conn *net.TCPConn) *Connection {
 	r := &Connection{
 		linkConn:  conn,
 		wt:        bufio.NewWriter(conn),
-		rt:        bufio.NewReader(conn),
+		rd:        bufio.NewReader(conn),
 		connectID: cid,
 		server:    s,
 		isPassive: false,

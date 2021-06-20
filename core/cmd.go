@@ -37,6 +37,7 @@ func loadAllCommands() commandList {
 	// transmit
 	{
 		cmdList.loadCommand(STOR)
+		cmdList.loadCommand(LIST)
 	}
 	return cmdList
 }

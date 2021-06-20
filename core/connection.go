@@ -22,7 +22,7 @@ type Connection struct {
 
 	linkConn *net.TCPConn
 	wt       *bufio.Writer
-	rt       *bufio.Reader
+	rd       *bufio.Reader
 
 	dataConn *net.TCPConn
 
@@ -73,6 +73,7 @@ func (conn *Connection) establishConn(addr *net.TCPAddr) error {
 			return err
 		}
 	}
+	// todo: 完善连接的关闭
 	conn.dataConn = tcpConn
 	return nil
 }
@@ -86,7 +87,7 @@ func (conn *Connection) sendText(r *response) error {
 }
 
 func (conn *Connection) readCommand() (*response, error) {
-	statement, err := conn.rt.ReadString('\n')
+	statement, err := conn.rd.ReadString('\n')
 	if err != nil {
 		// tcp连接中断
 		return nil, err
@@ -118,8 +119,9 @@ func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*response, 
 	if err := conn.sendText(createResponse(125, "Starting a data transport")); err != nil {
 		return createResponse(1, "An error occur when sending text to client: "+err.Error()), err
 	}
-	// 等待对方连接
+	// 等待连接
 	for {
+		// 被动情况下的处理
 		if conn.dataConn != nil {
 			break
 		}
@@ -134,7 +136,33 @@ func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*response, 
 	if err != nil {
 		return createResponse(451, "An error occur when receiving the data: "+err.Error()), err
 	}
-	return createResponse(226, fmt.Sprintf("Received complete, data Size: %d", size)), nil
+	return createResponse(226, fmt.Sprintf("Receive complete, data size: %d", size)), nil
+}
+
+func (conn *Connection) writeData(ctx context.Context, rd io.Reader, msg string) (*response, error) {
+	if err := conn.sendText(createResponse(125, msg)); err != nil {
+		return createResponse(1, "An error occur when sending text to client: "+err.Error()), err
+	}
+	// 等待连接
+	for {
+		// 被动情况下的处理
+		if conn.dataConn != nil {
+			break
+		}
+		if err := ctx.Err(); err != nil {
+			return createResponse(550, "Waiting transport time out."), nil
+		}
+		time.Sleep(time.Millisecond * 100)
+		log.Print("Waiting transport...")
+	}
+	// todo: 连接断开的处理
+	defer conn.dataConn.Close()
+	buf := make([]byte, 1024*1024)
+	size, err := io.CopyBuffer(conn.dataConn, rd, buf)
+	if err != nil {
+		return createResponse(451, "An error occur when sending the data: "+err.Error()), nil
+	}
+	return createResponse(226, fmt.Sprintf("Send complete, data size: %d", size)), nil
 }
 
 // verifyLogin 检查用户登录状态，若已经登录，则返回错误信息
