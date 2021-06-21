@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"github.com/Aldrice/liteFTP/common/utils"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,10 +37,17 @@ var OPTS = &command{
 var PASV = &command{
 	name:        []string{"PASV"},
 	demandAuth:  false,
-	demandLogin: false,
-	demandParam: true,
+	demandLogin: true,
+	demandParam: false,
 	cmdFunction: func(conn *Connection, params string) (*response, error) {
-		return respParamsError, nil
+		conn.isPassive = true
+		err := conn.establishConn(conn.linkConn.LocalAddr().(*net.TCPAddr))
+		if err != nil {
+			return createResponse(421, "An error occur when establishing the connection: "+err.Error()), err
+		}
+		return createResponse(227,
+			fmt.Sprintf("Entering Passive Mode (%s)", utils.FormatAddr(conn.pasvAddr)),
+		), nil
 	},
 }
 
@@ -49,8 +57,7 @@ var FEAT = &command{
 	demandLogin: false,
 	demandParam: false,
 	cmdFunction: func(conn *Connection, params string) (*response, error) {
-
-		return nil, nil
+		return respSyntaxError, nil
 	},
 }
 
@@ -254,7 +261,7 @@ var PORT = &command{
 	demandParam: true,
 	cmdFunction: func(conn *Connection, params string) (*response, error) {
 		ps := strings.SplitN(params, ",", 6)
-		addr := utils.ProcessAddr(ps)
+		addr := utils.WrapAddr(ps)
 		if addr == nil {
 			return createResponse(501, "The host port parameter is invalid."), nil
 		}

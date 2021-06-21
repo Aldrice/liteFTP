@@ -5,9 +5,11 @@ import (
 	. "github.com/Aldrice/liteFTP/common/config"
 	"github.com/Aldrice/liteFTP/core"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -18,6 +20,8 @@ func main() {
 	if err := json.Unmarshal(x, &InitCfg); err != nil {
 		log.Fatal("配置文件解析失败")
 	}
+	// 播随机种子
+	rand.Seed(time.Now().UnixNano())
 
 	// 检查导入的参数是否正确
 	verifyConfig()

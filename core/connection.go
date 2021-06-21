@@ -25,10 +25,11 @@ type Connection struct {
 	rd       *bufio.Reader
 
 	dataConn *net.TCPConn
+	pasvAddr *net.TCPAddr
 
+	// 该用户的信息, 权限, IP地址, 是否开启被动模式等等
 	isPassive bool
 
-	// todo: 该用户的信息, 权限, IP地址, 是否开启被动模式等等
 	isLogin     bool
 	isAnonymous bool
 	temp        string
@@ -62,12 +63,48 @@ func (conn *Connection) handle() {
 	}
 }
 
-// todo: 被动模式下连接的建立
+// establishConn 建立数据连接
 func (conn *Connection) establishConn(addr *net.TCPAddr) error {
 	var tcpConn *net.TCPConn
 	var err error
 	if conn.isPassive {
+		for {
+			pasvAddr := &net.TCPAddr{IP: addr.IP, Port: conn.server.getPassivePort()}
+			tcpLsn, err := net.ListenTCP("tcp", pasvAddr)
+			if err == nil {
+				conn.pasvAddr = pasvAddr
+				go func() {
+					// 限定监听时间为一分钟
+					err = tcpLsn.SetDeadline(time.Now().Add(time.Minute))
+					if err != nil {
+						return
+					}
+					// 开始监听
+					log.Printf("正在监听一个连接 - 连接端口: %d", pasvAddr.Port)
+					conn.dataConn, err = tcpLsn.AcceptTCP()
+					if err != nil {
+						log.Printf("建立一个连接失败 - 连接端口: %d, 错误信息: %s", pasvAddr.Port, err.Error())
+					}
+					log.Printf("成功建立一个连接 - 连接端口: %d", pasvAddr.Port)
+					// todo: 连接的关闭
+					ctx, cancel := context.WithCancel(context.Background())
+					defer cancel()
 
+					// 关闭监听, 限定数据连接时间为一分钟
+					_ = conn.dataConn.SetDeadline(time.Now().Add(time.Minute))
+					_ = tcpLsn.Close()
+
+					<-ctx.Done()
+
+					_ = conn.dataConn.Close()
+					conn.dataConn = nil
+					conn.pasvAddr = nil
+				}()
+			}
+			if !utils.IsPortInuse(err) {
+				return err
+			}
+		}
 	} else {
 		tcpConn, err = net.DialTCP("tcp", nil, addr)
 		if err != nil {
@@ -176,7 +213,9 @@ func (conn *Connection) verifyLogin() *response {
 
 // processPath 返回有效路径, 若返回的路径为空, 说明输入路径有误
 func (conn *Connection) processPath(path string) string {
-	// todo: 处理windows file explorer路径格式问题
+	// 处理windows file explorer路径格式问题
+	path = strings.Trim(path, "/")
+
 	// 路径为绝对路径的情况
 	if filepath.IsAbs(path) {
 		relPath, err := filepath.Rel(conn.authDir, path)

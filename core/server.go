@@ -6,6 +6,7 @@ import (
 	. "github.com/Aldrice/liteFTP/common/config"
 	"github.com/Aldrice/liteFTP/common/utils"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
@@ -107,4 +108,8 @@ func (s *server) Listen() error {
 		log.Print("建立新连接")
 		go s.newConnection(tcpConn).handle()
 	}
+}
+
+func (s *server) getPassivePort() int {
+	return s.pasvMinPort + rand.Intn(s.pasvMaxPort-s.pasvMinPort)
 }

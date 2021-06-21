@@ -31,6 +31,7 @@ type srvCfg struct {
 
 	EnableUTF8      bool `json:"enable_utf_8"`
 	EnableAnonymous bool `json:"enable_anonymous"`
+	EnablePassive   bool `json:"enable_passive"`
 
 	BinaryFlag bool `json:"binary_flag"`
 	// todo: 单个用户所允许的最大存储空间

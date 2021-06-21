@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"errors"
 	"os"
 	"strings"
+	"syscall"
 )
 
 // VerifyParams 用于检查参数数量是否符合预期, 返回true说明数量符合预期，并且返回参数数组
@@ -34,4 +36,22 @@ func IsDir(path string) bool {
 		return false
 	}
 	return s.IsDir()
+}
+
+// IsPortInuse 检查错误是否为 端口已被占用
+func IsPortInuse(err error) bool {
+	// 载入错误
+	var eOsSyscall *os.SyscallError
+	if !errors.As(err, &eOsSyscall) {
+		return false
+	}
+	var errErrno syscall.Errno
+	if !errors.As(eOsSyscall, &errErrno) {
+		return false
+	}
+	// 检查端口是否被使用
+	if errErrno == syscall.EADDRINUSE {
+		return true
+	}
+	return false
 }

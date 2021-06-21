@@ -1,14 +1,15 @@
 package utils
 
 import (
+	"fmt"
 	"io/fs"
 	"net"
 	"strconv"
 	"strings"
 )
 
-// ProcessAddr 将h1, h2, h3, h4, p1, p2转化为有效的TCP地址, 并返回, 为空说明参数有误
-func ProcessAddr(params []string) *net.TCPAddr {
+// WrapAddr 将h1, h2, h3, h4, p1, p2转化为有效的TCP地址, 并返回, 为空说明参数有误
+func WrapAddr(params []string) *net.TCPAddr {
 	nums := make([]int, 6)
 	for i, param := range params {
 		num, err := strconv.Atoi(param)
@@ -23,8 +24,7 @@ func ProcessAddr(params []string) *net.TCPAddr {
 	}
 }
 
-// FormatFileList 将文件夹的信息格式化
-// todo: 理解
+// FormatFileList 将文件夹的信息格式化, Unix文件列表格式
 func FormatFileList(list []fs.FileInfo) string {
 	builder := new(strings.Builder)
 	for _, info := range list {
@@ -36,4 +36,11 @@ func FormatFileList(list []fs.FileInfo) string {
 		builder.WriteString("\r\n")
 	}
 	return builder.String()
+}
+
+func FormatAddr(addr *net.TCPAddr) string {
+	ip := addr.IP.To4()
+	return fmt.Sprintf("%d,%d,%d,%d,%d,%d", ip[0], ip[1], ip[2], ip[3],
+		addr.Port>>8, addr.Port&0xff,
+	)
 }

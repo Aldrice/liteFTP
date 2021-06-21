@@ -16,6 +16,7 @@
     "root_dir": "./file/user",
     "enable_utf_8": true,
     "enable_anonymous": true,
+    "enable_passive": true,
     "binary_flag": false
   }
 }
