@@ -4,15 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	. "github.com/Aldrice/liteFTP/common/config"
-	"github.com/Aldrice/liteFTP/common/utils"
+	"github.com/Aldrice/liteFTP/common/datebase"
+	"github.com/Aldrice/liteFTP/utils"
 	"log"
 	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
 )
-
-const anonymous = "anonymous"
 
 type server struct {
 	// 服务器支持的指令集
@@ -25,11 +24,16 @@ type server struct {
 	enableUTF8 bool
 	// 是否允许匿名访问
 	enableAnonymous bool
-	// 服务器文件存储基址
+	// 服务器根目录基址
 	rootDir string
+	// 服务器用户存储目录基址
+	userDir string
+	// 服务器系统文件目录基址
+	systDir string
 	// 服务器是否允许二进制传输
 	binaryFlag bool
-	// todo: 权限管理
+	// 数据库对象
+	srvDB *datebase.SrvDB
 }
 
 func NewServer() *server {
@@ -44,23 +48,47 @@ func NewServer() *server {
 		enableUTF8:      InitCfg.SrvCfg.EnableUTF8,
 		enableAnonymous: InitCfg.SrvCfg.EnableAnonymous,
 		rootDir:         absPath,
+		userDir:         filepath.Join(absPath, UserPath),
+		systDir:         filepath.Join(absPath, SystPath),
 		binaryFlag:      InitCfg.SrvCfg.BinaryFlag,
 	}
 
-	// 检查服务单元的存储路径是否有效
-	exist, err := utils.VerifyPath(s.rootDir)
+	// 检查服务器的存储路径是否有效
+	exist, err := utils.VerifyPath(s.userDir)
 	if err != nil {
 		log.Fatal("服务器根目录 路径检查出错")
 	}
 	if !exist {
-		if err := os.MkdirAll(s.rootDir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(s.userDir, os.ModePerm); err != nil {
+			log.Fatal("文件夹创建出错")
+		}
+	}
+	// 检查服务器的系统文件路径是否有效
+	exist, err = utils.VerifyPath(s.systDir)
+	if err != nil {
+		log.Fatal("服务器根目录 路径检查出错")
+	}
+	if !exist {
+		if err := os.MkdirAll(s.systDir, os.ModePerm); err != nil {
 			log.Fatal("文件夹创建出错")
 		}
 	}
 
+	// 为该服务端初始化一个数据库
+	s.srvDB, err = datebase.InitDB(InitCfg.DBCfg.DriverName, filepath.Join(s.systDir, DataSource))
+	if err != nil {
+		log.Fatal("服务器数据库 初始化失败")
+	}
+
+	/*
+		if err := s.srvDB.CreateUser("martin", "12345678"); err != nil {
+			log.Fatal("用户创建失败: " + err.Error())
+		}
+	*/
+
 	// 若开启匿名访问服务，则检查匿名文件夹是否存在
 	if s.enableAnonymous {
-		anonymousPath := filepath.Join(s.rootDir, anonymous)
+		anonymousPath := filepath.Join(s.userDir, Anonymous)
 		exist, err = utils.VerifyPath(anonymousPath)
 		if err != nil {
 			log.Fatal("匿名根目录 路径检查出错")
@@ -112,4 +140,8 @@ func (s *server) Listen() error {
 
 func (s *server) getPassivePort() int {
 	return s.pasvMinPort + rand.Intn(s.pasvMaxPort-s.pasvMinPort)
+}
+
+func (s *server) CloseDB() {
+	s.srvDB.CloseDB()
 }

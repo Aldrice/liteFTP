@@ -10,7 +10,6 @@ var InitCfg struct {
 // 数据库配置
 type dbCfg struct {
 	DriverName string `json:"driver_name"`
-	DBSource   string `json:"db_source"`
 	CacheMode  string `json:"cache_mode"`
 	ForeignKey int    `json:"foreign_key"`
 }

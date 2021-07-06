@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Aldrice/liteFTP/common/utils"
+	"github.com/Aldrice/liteFTP/utils"
 	"net"
 	"testing"
 )

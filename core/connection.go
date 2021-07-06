@@ -4,7 +4,8 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/Aldrice/liteFTP/common/utils"
+	"github.com/Aldrice/liteFTP/common/config"
+	"github.com/Aldrice/liteFTP/utils"
 	"io"
 	"log"
 	"net"
@@ -30,12 +31,11 @@ type Connection struct {
 	// 该用户的信息, 权限, IP地址, 是否开启被动模式等等
 	isPassive bool
 
-	isLogin     bool
-	isAnonymous bool
-	temp        string
-	authDir     string // 有权限的最大根目录
-	workDir     string // 目前所在的目录
-	renamePath  string // 要移动的文件路径
+	isLogin    bool // 是否处于登录状态
+	temp       string
+	authDir    string // 有权限的最大根目录
+	workDir    string // 目前所在的目录
+	renamePath string // 要移动的文件路径
 }
 
 func (conn *Connection) handle() {
@@ -44,7 +44,7 @@ func (conn *Connection) handle() {
 		_ = conn.linkConn.Close()
 	}()
 
-	if err := conn.sendText(respWelcome); err != nil {
+	if err := conn.sendText(rspWelcome); err != nil {
 		log.Print("出错了")
 	}
 
@@ -55,7 +55,7 @@ func (conn *Connection) handle() {
 			_ = conn.linkConn.Close()
 			return
 		}
-		log.Printf("response: %d %s", res.code, res.info)
+		log.Printf("rsp: %d %s", res.code, res.info)
 		if err := conn.sendText(res); err != nil {
 			_ = conn.linkConn.Close()
 			return
@@ -116,15 +116,15 @@ func (conn *Connection) establishConn(addr *net.TCPAddr) error {
 	return nil
 }
 
-func (conn *Connection) sendText(r *response) error {
-	_, err := conn.wt.WriteString(fmt.Sprintf("%d %s\r\n", r.code, r.info))
+func (conn *Connection) sendText(r *rsp) error {
+	_, err := conn.wt.WriteString(r.formatResponse())
 	if err != nil {
 		return err
 	}
 	return conn.wt.Flush()
 }
 
-func (conn *Connection) readCommand() (*response, error) {
+func (conn *Connection) readCommand() (*rsp, error) {
 	statement, err := conn.rd.ReadString('\n')
 	if err != nil {
 		// tcp连接中断
@@ -136,26 +136,26 @@ func (conn *Connection) readCommand() (*response, error) {
 	// 指令匹配
 	c, exist := conn.server.command[strings.ToUpper(components[0])]
 	if !exist {
-		return respSyntaxError, nil
+		return rspSyntaxError, nil
 	}
 	// 检查是否需要权限
-	if c.demandAuth && (!conn.isLogin || conn.isAnonymous) {
-		return respAuthError, nil
+	if c.demandAuth && (!conn.isLogin || conn.temp == config.Anonymous) {
+		return rspAuthError, nil
 	}
 	// 检查输入参数数量是否符合要求
 	if c.demandParam {
 		if len(components) == 1 {
-			return respParamsError, nil
+			return rspParamsError, nil
 		}
 		return c.cmdFunction(conn, components[1])
 	}
 	return c.cmdFunction(conn, "")
 }
 
-func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*response, error) {
+func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*rsp, error) {
 	// todo: 开始前检查连接状况
 	if err := conn.sendText(createResponse(125, "Starting a data transport")); err != nil {
-		return createResponse(1, "An error occur when sending text to client: "+err.Error()), err
+		return createResponse(1, "An error occur when sending text to client", err.Error()), err
 	}
 	// 等待连接
 	for {
@@ -172,12 +172,12 @@ func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*response, 
 	// 接收数据
 	size, err := io.Copy(wt, conn.dataConn)
 	if err != nil {
-		return createResponse(451, "An error occur when receiving the data: "+err.Error()), err
+		return createResponse(451, "An error occur when receiving the data", err.Error()), err
 	}
 	return createResponse(226, fmt.Sprintf("Receive complete, data size: %d", size)), nil
 }
 
-func (conn *Connection) writeData(ctx context.Context, rd io.Reader) (*response, error) {
+func (conn *Connection) writeData(ctx context.Context, rd io.Reader) (*rsp, error) {
 	// 等待连接
 	for {
 		// 被动情况下的处理
@@ -195,18 +195,15 @@ func (conn *Connection) writeData(ctx context.Context, rd io.Reader) (*response,
 	buf := make([]byte, 1024*1024)
 	size, err := io.CopyBuffer(conn.dataConn, rd, buf)
 	if err != nil {
-		return createResponse(451, "An error occur when sending the data: "+err.Error()), nil
+		return createResponse(451, "An error occur when sending the data", err.Error()), nil
 	}
 	return createResponse(226, fmt.Sprintf("Send complete, data size: %d", size)), nil
 }
 
 // verifyLogin 检查用户登录状态，若已经登录，则返回错误信息
-func (conn *Connection) verifyLogin() *response {
+func (conn *Connection) verifyLogin() *rsp {
 	if conn.isLogin {
-		return &response{
-			code: 502,
-			info: "user already login",
-		}
+		return createResponse(502, "User already login.")
 	}
 	return nil
 }

@@ -1,7 +1,6 @@
 {
   "db_cfg": {
-    "driver_name": "",
-    "db_source": "",
+    "driver_name": "sqlite3",
     "cache_mode": "",
     "foreign_key": 1
   },
@@ -13,7 +12,7 @@
     "admin_port": 32080
   },
   "srv_cfg": {
-    "root_dir": "./file/user",
+    "root_dir": "./file",
     "enable_utf_8": true,
     "enable_anonymous": true,
     "enable_passive": true,

@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// todo: 实现多FTP服务器在同一个机器上运行
 func main() {
 	x, err := os.ReadFile("./config.json")
 	if err != nil {
@@ -26,7 +27,11 @@ func main() {
 	// 检查导入的参数是否正确
 	verifyConfig()
 
+	// 新建一个FTP服务器对象
 	srv := core.NewServer()
+	// 在程序退出时关闭数据库
+	defer srv.CloseDB()
+
 	// ftp服务
 	go func() {
 		if err := srv.Listen(); err != nil {

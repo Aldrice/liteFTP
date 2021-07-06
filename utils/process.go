@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/md5"
 	"fmt"
 	"io/fs"
 	"net"
@@ -43,4 +44,11 @@ func FormatAddr(addr *net.TCPAddr) string {
 	return fmt.Sprintf("%d,%d,%d,%d,%d,%d", ip[0], ip[1], ip[2], ip[3],
 		addr.Port>>8, addr.Port&0xff,
 	)
+}
+
+// HashStrings 把字符串形式的密码转化为16位的二进制数串
+func HashStrings(password string) []byte {
+	hash := md5.New()
+	hash.Write([]byte(password))
+	return hash.Sum(nil)
 }

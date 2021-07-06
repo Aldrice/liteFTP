@@ -5,18 +5,38 @@ type command struct {
 	demandAuth  bool
 	demandLogin bool
 	demandParam bool
-	cmdFunction func(conn *Connection, params string) (*response, error)
+	cmdFunction func(conn *Connection, params string) (*rsp, error)
 }
 
 type cmdMap map[string]*command
 
+// todo: 可以选用标准指令集
 var cmdList = []*command{
 	// auth
-	USER, PASS,
+	USER,
+	PASS,
 	// control
-	OPTS, PASV, FEAT, QUIT, PWD, SYST, NOOP, TYPE, CDUP, RMD, MKD, CWD, DELE, PORT, SIZE, RNFR, RNTO,
+	OPTS,
+	PASV,
+	FEAT,
+	QUIT,
+	PWD,
+	SYST,
+	NOOP,
+	TYPE,
+	CDUP,
+	RMD,
+	MKD,
+	CWD,
+	DELE,
+	PORT,
+	SIZE,
+	RNFR,
+	RNTO,
 	// transmit
-	STOR, LIST, RETR,
+	STOR,
+	LIST,
+	RETR,
 }
 
 func loadAllCommands(commands []*command) cmdMap {
