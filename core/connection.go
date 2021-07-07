@@ -86,17 +86,20 @@ func (conn *Connection) establishConn(addr *net.TCPAddr) error {
 						log.Printf("建立一个连接失败 - 连接端口: %d, 错误信息: %s", pasvAddr.Port, err.Error())
 					}
 					log.Printf("成功建立一个连接 - 连接端口: %d", pasvAddr.Port)
+
 					// todo: 连接的关闭
+					// 关闭监听, 限定数据连接时间为一分钟
 					ctx, cancel := context.WithCancel(context.Background())
 					defer cancel()
 
-					// 关闭监听, 限定数据连接时间为一分钟
 					_ = conn.dataConn.SetDeadline(time.Now().Add(time.Minute))
 					_ = tcpLsn.Close()
+					log.Printf("断开一个连接的监听 - 连接端口: %d", pasvAddr.Port)
 
 					<-ctx.Done()
 
 					_ = conn.dataConn.Close()
+					log.Printf("断开一个连接 - 连接端口: %d", pasvAddr.Port)
 					conn.dataConn = nil
 					conn.pasvAddr = nil
 				}()
@@ -154,8 +157,8 @@ func (conn *Connection) readCommand() (*rsp, error) {
 
 func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*rsp, error) {
 	// todo: 开始前检查连接状况
-	if err := conn.sendText(createResponse(125, "Starting a data transport")); err != nil {
-		return createResponse(1, "An error occur when sending text to client", err.Error()), err
+	if err := conn.sendText(newResponse(125, "Starting a data transport")); err != nil {
+		return newResponse(1, "An error occur when sending text to client", err.Error()), err
 	}
 	// 等待连接
 	for {
@@ -164,7 +167,7 @@ func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*rsp, error
 			break
 		}
 		if err := ctx.Err(); err != nil {
-			return createResponse(550, "Waiting transport time out."), nil
+			return newResponse(550, "Waiting transport time out."), nil
 		}
 		time.Sleep(time.Millisecond * 100)
 		log.Print("Waiting transport...")
@@ -172,38 +175,46 @@ func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*rsp, error
 	// 接收数据
 	size, err := io.Copy(wt, conn.dataConn)
 	if err != nil {
-		return createResponse(451, "An error occur when receiving the data", err.Error()), err
+		return newResponse(451, "An error occur when receiving the data", err.Error()), err
 	}
-	return createResponse(226, fmt.Sprintf("Receive complete, data size: %d", size)), nil
+	return newResponse(226, fmt.Sprintf("Receive complete, data size: %d", size)), nil
 }
 
 func (conn *Connection) writeData(ctx context.Context, rd io.Reader) (*rsp, error) {
 	// 等待连接
 	for {
-		// 被动情况下的处理
+		// 被动情况下的处理, 若数据链路已建立则跳出等待循环
 		if conn.dataConn != nil {
 			break
 		}
+		// 若超时则跳出等待循环并回复用户端错误
 		if err := ctx.Err(); err != nil {
-			return createResponse(550, "Waiting transport time out."), nil
+			return newResponse(550, "Waiting transport time out."), nil
 		}
 		time.Sleep(time.Millisecond * 100)
 		log.Print("Waiting transport...")
 	}
-	// todo: 连接断开的处理
-	defer conn.dataConn.Close()
+	// 连接断开的处理
+	defer func() {
+		if conn.dataConn != nil {
+			_ = conn.dataConn.Close()
+			log.Printf("断开一个连接 - 连接: %s", conn.dataConn.LocalAddr().String())
+		}
+		conn.dataConn = nil
+	}()
+	// 限定传输数据的缓存为1024KB
 	buf := make([]byte, 1024*1024)
 	size, err := io.CopyBuffer(conn.dataConn, rd, buf)
 	if err != nil {
-		return createResponse(451, "An error occur when sending the data", err.Error()), nil
+		return newResponse(451, "An error occur when sending the data", err.Error()), nil
 	}
-	return createResponse(226, fmt.Sprintf("Send complete, data size: %d", size)), nil
+	return newResponse(226, fmt.Sprintf("Send complete, data size: %d", size)), nil
 }
 
 // verifyLogin 检查用户登录状态，若已经登录，则返回错误信息
 func (conn *Connection) verifyLogin() *rsp {
 	if conn.isLogin {
-		return createResponse(502, "User already login.")
+		return newResponse(502, "User already login.")
 	}
 	return nil
 }

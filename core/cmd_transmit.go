@@ -24,12 +24,12 @@ var STOR = &command{
 		// 处理路径
 		newPath := conn.processPath(ps[0])
 		if newPath == "" {
-			return createResponse(550, "The pathname wasn't exist or no authorization to process."), nil
+			return newResponse(550, "The pathname wasn't exist or no authorization to process."), nil
 		}
 		// 打开已有文件 或 新建文件
 		f, err := os.OpenFile(newPath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return createResponse(550, "An error occur when creating or opening the file", err.Error()), err
+			return newResponse(550, "An error occur when creating or opening the file", err.Error()), err
 		}
 		defer f.Close()
 
@@ -53,16 +53,16 @@ var LIST = &command{
 			}
 			exist, err := utils.VerifyPath(ps[0])
 			if err != nil {
-				return createResponse(550, "An error occur when verifying the data", err.Error()), err
+				return newResponse(550, "An error occur when verifying the data", err.Error()), err
 			}
 			if !exist {
-				return createResponse(550, "The path wasn't exist or no authorization to process."), err
+				return newResponse(550, "The path wasn't exist or no authorization to process."), err
 			}
 			path = ps[0]
 		}
 		dir, err := os.ReadDir(path)
 		if err != nil {
-			return createResponse(550, "An error occur when opening the dictionary", err.Error()), err
+			return newResponse(550, "An error occur when opening the dictionary", err.Error()), err
 		}
 
 		var files []fs.FileInfo
@@ -75,8 +75,8 @@ var LIST = &command{
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
-		if err := conn.sendText(createResponse(125, "Transferring the dir entries.")); err != nil {
-			return createResponse(1, "An error occur when sending text to client", err.Error()), err
+		if err := conn.sendText(newResponse(125, "Transferring the dir entries.")); err != nil {
+			return newResponse(1, "An error occur when sending text to client", err.Error()), err
 		}
 		return conn.writeData(ctx, strings.NewReader(utils.FormatFileList(files)))
 	},
@@ -95,18 +95,18 @@ var RETR = &command{
 		}
 		newPath := conn.processPath(ps[0])
 		if newPath == "" || utils.IsDir(newPath) {
-			return createResponse(550, "The path wasn't exist or no authorization to process."), nil
+			return newResponse(550, "The path wasn't exist or no authorization to process."), nil
 		}
 
 		file, err := os.Open(newPath)
 		if err != nil {
-			return createResponse(450, "An error occur when opening the file", err.Error()), err
+			return newResponse(450, "An error occur when opening the file", err.Error()), err
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 
-		if err := conn.sendText(createResponse(125, "Transferring the specify file.")); err != nil {
-			return createResponse(1, "An error occur when sending text to client", err.Error()), err
+		if err := conn.sendText(newResponse(125, "Transferring the specify file.")); err != nil {
+			return newResponse(1, "An error occur when sending text to client", err.Error()), err
 		}
 		return conn.writeData(ctx, file)
 	},

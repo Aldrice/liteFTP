@@ -10,7 +10,7 @@ type rsp struct {
 	info string
 }
 
-func createResponse(c int, i ...string) *rsp {
+func newResponse(c int, i ...string) *rsp {
 	info := i[0]
 	if len(i) > 1 {
 		return &rsp{

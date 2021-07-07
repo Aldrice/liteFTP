@@ -20,17 +20,17 @@ var USER = &command{
 		// 检查是否允许匿名访问
 		if username == config.Anonymous {
 			if !conn.server.enableAnonymous {
-				return createResponse(530, "Server do not allow anonymous user."), nil
+				return newResponse(530, "Server do not allow anonymous user."), nil
 			}
 		} else {
 			// 若用户不为匿名用户, 则检查该用户是否存在
 			exist, err := conn.server.srvDB.VerifyUser(username)
 			if err != nil {
-				return createResponse(530, "An error occur when processing in the database.", err.Error()), err
+				return newResponse(530, "An error occur when processing in the database.", err.Error()), err
 			}
 			// todo: 可能要给予用户渠道去注册账户
 			if !exist {
-				return createResponse(530, "The user is not exist in this FTP server."), nil
+				return newResponse(530, "The user is not exist in this FTP server."), nil
 			}
 		}
 		conn.temp = username
@@ -53,19 +53,19 @@ var PASS = &command{
 		// 实现登录状态下的相关处理
 		switch conn.temp {
 		case "":
-			return createResponse(502, "You need to input your username before using this command."), nil
+			return newResponse(502, "You need to input your username before using this command."), nil
 		case config.Anonymous:
 			if !conn.server.enableAnonymous {
-				return createResponse(530, "Server do not allow anonymous user."), nil
+				return newResponse(530, "Server do not allow anonymous user."), nil
 			}
 		default:
 			exist, err := conn.server.srvDB.VerifyUser(conn.temp, strings.ToLower(params))
 			if err != nil {
-				return createResponse(530, "An error occur when processing in the database.", err.Error()), err
+				return newResponse(530, "An error occur when processing in the database.", err.Error()), err
 			}
 			// todo: 可能要给予用户渠道去注册账户
 			if !exist {
-				return createResponse(530, "The password is not match with this user."), nil
+				return newResponse(530, "The password is not match with this user."), nil
 			}
 		}
 		// todo: 用户可能有多处分叉的最大根目录 (如 user/anonymous, user/xxx)
