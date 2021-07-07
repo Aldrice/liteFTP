@@ -37,6 +37,8 @@ var cmdList = []*command{
 	STOR,
 	LIST,
 	RETR,
+	// extend
+	SITE,
 }
 
 func loadAllCommands(commands []*command) cmdMap {

@@ -2,7 +2,6 @@ package core
 
 import (
 	"github.com/Aldrice/liteFTP/common/config"
-	"path/filepath"
 	"strings"
 )
 
@@ -26,11 +25,13 @@ var USER = &command{
 			// 若用户不为匿名用户, 则检查该用户是否存在
 			exist, err := conn.server.srvDB.VerifyUser(username)
 			if err != nil {
-				return newResponse(530, "An error occur when processing in the database.", err.Error()), err
+				return newResponse(530, rspDataBaseError, err.Error()), err
 			}
-			// todo: 可能要给予用户渠道去注册账户
 			if !exist {
-				return newResponse(530, "The user is not exist in this FTP server."), nil
+				return newResponse(
+					530,
+					"The user is not exist in this FTP server.\nUse SITE PSWD -password to register a new user as this name.",
+				), nil
 			}
 		}
 		conn.temp = username
@@ -59,18 +60,23 @@ var PASS = &command{
 				return newResponse(530, "Server do not allow anonymous user."), nil
 			}
 		default:
-			exist, err := conn.server.srvDB.VerifyUser(conn.temp, strings.ToLower(params))
+			exist, err := conn.server.srvDB.VerifyUser(conn.temp, params)
 			if err != nil {
-				return newResponse(530, "An error occur when processing in the database.", err.Error()), err
+				return newResponse(530, rspDataBaseError, err.Error()), err
 			}
-			// todo: 可能要给予用户渠道去注册账户
 			if !exist {
 				return newResponse(530, "The password is not match with this user."), nil
 			}
+			isAdmin, err := conn.server.srvDB.IsAdmin(conn.temp)
+			if err != nil {
+				return newResponse(530, rspDataBaseError, err.Error()), err
+			}
+			if isAdmin {
+				conn.isAdmin = true
+			}
 		}
 		conn.isLogin = true
-		conn.authDir = filepath.Join(conn.server.userDir, conn.temp)
-		conn.workDir = conn.authDir
+		conn.refreshDir()
 		return newResponse(200, rspTextLoginSuccess), nil
 	},
 }

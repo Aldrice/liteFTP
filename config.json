@@ -8,8 +8,7 @@
     "min_pasv_port": 40000,
     "max_pasv_port": 50000,
     "data_port": 20,
-    "link_port": 21,
-    "admin_port": 32080
+    "link_port": 21
   },
   "srv_cfg": {
     "root_dir": "./file",

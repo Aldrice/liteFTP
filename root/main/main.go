@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// todo: 实现多FTP服务器在同一个机器上运行
+// todo: 实现多FTP服务器在同一个机器上运行. delay
 func main() {
 	x, err := os.ReadFile("./config.json")
 	if err != nil {

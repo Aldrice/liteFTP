@@ -20,8 +20,6 @@ type portCfg struct {
 	MaxPasvPort int `json:"max_pasv_port"`
 	DataPort    int `json:"data_port"`
 	LinkPort    int `json:"link_port"`
-	// todo: 暂时不用
-	AdminPort int `json:"admin_port"`
 }
 
 // 服务配置

@@ -29,13 +29,15 @@ type Connection struct {
 	dataConn *net.TCPConn
 	pasvAddr *net.TCPAddr
 
-	// 用户信息
 	isPassive  bool   // 是否处于被动模式
-	isLogin    bool   // 是否处于登录状态
-	temp       string // 用户昵称
+	renamePath string // 要移动的文件路径
 	authDir    string // 有权限的最大根目录
 	workDir    string // 目前所在的目录
-	renamePath string // 要移动的文件路径
+
+	// 用户信息
+	temp    string // 用户昵称
+	isLogin bool   // 是否处于登录状态
+	isAdmin bool   // 是否为管理员
 }
 
 func (conn *Connection) handle() {
@@ -87,7 +89,6 @@ func (conn *Connection) establishConn(addr *net.TCPAddr) error {
 					}
 					log.Printf("成功建立一个连接 - 连接端口: %d", pasvAddr.Port)
 
-					// todo: 连接的关闭
 					// 关闭监听, 限定数据连接时间为一分钟
 					ctx, cancel := context.WithCancel(context.Background())
 					defer cancel()
@@ -133,8 +134,8 @@ func (conn *Connection) readCommand() (*rsp, error) {
 		return nil, err
 	}
 	statement = strings.TrimRight(statement, "\r\n")
-	components := strings.SplitN(statement, " ", 2)
 	log.Println("request: " + statement)
+	components := strings.SplitN(statement, " ", 2)
 	// 指令匹配
 	c, exist := conn.server.command[strings.ToUpper(components[0])]
 	if !exist {
@@ -245,4 +246,14 @@ func (conn *Connection) setLiedDir(path string) (bool, error) {
 	}
 	conn.workDir = path
 	return true, nil
+}
+
+// refreshDir 刷新当前连接关于路径的信息
+func (conn *Connection) refreshDir() {
+	if conn.isAdmin {
+		conn.authDir = conn.server.userDir
+	} else {
+		conn.authDir = filepath.Join(conn.server.userDir, conn.temp)
+	}
+	conn.workDir = conn.authDir
 }

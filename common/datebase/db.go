@@ -23,7 +23,8 @@ func InitDB(driverName, dataSource string) (*SrvDB, error) {
     CREATE TABLE IF NOT EXISTS user (
         uid INTEGER PRIMARY KEY AUTOINCREMENT,
         username VARCHAR(256) NOT NULL UNIQUE,
-        password BLOB(16) NOT NULL
+        password BLOB(16) NOT NULL,
+        is_admin INTEGER NOT NULL                        
     );`
 	_, err = db.Exec(table)
 	if err != nil {

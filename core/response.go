@@ -15,7 +15,7 @@ func newResponse(c int, i ...string) *rsp {
 	if len(i) > 1 {
 		return &rsp{
 			code: c,
-			info: fmt.Sprintf("%s\nError Message: %s", info, i[1]),
+			info: fmt.Sprintf("%s\r\nError Message: %s", info, i[1]),
 		}
 	}
 	return &rsp{
@@ -37,7 +37,10 @@ var (
 	rspTextWelcome      = "KLL FTP server ready."
 	rspTextTempReceived = "Input password to login."
 	rspTextLoginSuccess = "Login successfully."
-	rspTextSendError    = "An error occur when sending text to client."
+
+	rspTextSendError = "An error occur when sending text to client."
+	rspDataBaseError = "An error occur when processing the database."
+	rspProcessError  = "An error occur when server handle os process."
 )
 
 var (
