@@ -80,12 +80,6 @@ func NewServer() *server {
 		log.Fatal("服务器数据库 初始化失败")
 	}
 
-	/*
-		if err := s.srvDB.CreateUser("martin", "12345678"); err != nil {
-			log.Fatal("用户创建失败: " + err.Error())
-		}
-	*/
-
 	// 若开启匿名访问服务，则检查匿名文件夹是否存在
 	if s.enableAnonymous {
 		anonymousPath := filepath.Join(s.userDir, Anonymous)

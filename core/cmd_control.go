@@ -120,7 +120,7 @@ var CDUP = &command{
 		if conn.workDir != conn.authDir {
 			ok, err := conn.setLiedDir(filepath.Dir(conn.workDir))
 			if err != nil {
-				return rspProcessError, err
+				return newResponse(550, "An error occur when setting the dir.", err.Error()), nil
 			}
 			if ok {
 				return newResponse(200, "Okay."), nil
@@ -182,7 +182,7 @@ var CWD = &command{
 		}
 		ok, err := conn.setLiedDir(newPath)
 		if err != nil {
-			return rspProcessError, err
+			return newResponse(550, "An error occur when setting the dir.", err.Error()), nil
 		}
 		if !ok {
 			return newResponse(550, fmt.Sprintf("%s: No such dictionary.", ps[0])), nil

@@ -33,5 +33,4 @@ type srvCfg struct {
 	EnablePassive   bool `json:"enable_passive"`
 
 	BinaryFlag bool `json:"binary_flag"`
-	// todo: 单个用户所允许的最大存储空间
 }

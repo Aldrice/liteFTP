@@ -34,12 +34,12 @@ func (r *rsp) formatResponse() string {
 }
 
 var (
-	rspWelcome      = &rsp{code: 220, info: "KLL FTP server ready."}
-	rspTempReceived = &rsp{code: 331, info: "Input password to login."}
-	rspLoginSuccess = &rsp{code: 200, info: "Login successfully."}
+	rspTextWelcome      = "KLL FTP server ready."
+	rspTextTempReceived = "Input password to login."
+	rspTextLoginSuccess = "Login successfully."
+)
 
-	rspSyntaxError  = &rsp{code: 500, info: "Syntax error, command unrecognized."}
-	rspProcessError = &rsp{code: 553, info: "An error occur in the server, requested action not taken."}
-	rspParamsError  = &rsp{code: 504, info: "Command not implemented for that parameter."}
-	rspAuthError    = &rsp{code: 530, info: "User no auth to execute this command."}
+var (
+	rspSyntaxError = &rsp{code: 500, info: "Syntax error, command unrecognized."}
+	rspParamsError = &rsp{code: 504, info: "Command not implemented for that parameter."}
 )

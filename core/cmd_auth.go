@@ -34,7 +34,7 @@ var USER = &command{
 			}
 		}
 		conn.temp = username
-		return rspTempReceived, nil
+		return newResponse(331, rspTextTempReceived), nil
 	},
 }
 
@@ -68,10 +68,9 @@ var PASS = &command{
 				return newResponse(530, "The password is not match with this user."), nil
 			}
 		}
-		// todo: 用户可能有多处分叉的最大根目录 (如 user/anonymous, user/xxx)
 		conn.isLogin = true
 		conn.authDir = filepath.Join(conn.server.userDir, conn.temp)
 		conn.workDir = conn.authDir
-		return rspLoginSuccess, nil
+		return newResponse(200, rspTextLoginSuccess), nil
 	},
 }

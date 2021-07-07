@@ -18,6 +18,7 @@ import (
 var cid = 0
 
 type Connection struct {
+	// 连接信息
 	connectID int
 	server    *server
 
@@ -28,11 +29,10 @@ type Connection struct {
 	dataConn *net.TCPConn
 	pasvAddr *net.TCPAddr
 
-	// 该用户的信息, 权限, IP地址, 是否开启被动模式等等
-	isPassive bool
-
-	isLogin    bool // 是否处于登录状态
-	temp       string
+	// 用户信息
+	isPassive  bool   // 是否处于被动模式
+	isLogin    bool   // 是否处于登录状态
+	temp       string // 用户昵称
 	authDir    string // 有权限的最大根目录
 	workDir    string // 目前所在的目录
 	renamePath string // 要移动的文件路径
@@ -44,7 +44,7 @@ func (conn *Connection) handle() {
 		_ = conn.linkConn.Close()
 	}()
 
-	if err := conn.sendText(rspWelcome); err != nil {
+	if err := conn.sendText(newResponse(220, rspTextWelcome)); err != nil {
 		log.Print("出错了")
 	}
 
@@ -114,7 +114,6 @@ func (conn *Connection) establishConn(addr *net.TCPAddr) error {
 			return err
 		}
 	}
-	// todo: 完善连接的关闭
 	conn.dataConn = tcpConn
 	return nil
 }
@@ -143,7 +142,7 @@ func (conn *Connection) readCommand() (*rsp, error) {
 	}
 	// 检查是否需要权限
 	if c.demandAuth && (!conn.isLogin || conn.temp == config.Anonymous) {
-		return rspAuthError, nil
+		return newResponse(530, "User no auth to execute this command."), nil
 	}
 	// 检查输入参数数量是否符合要求
 	if c.demandParam {
@@ -156,7 +155,6 @@ func (conn *Connection) readCommand() (*rsp, error) {
 }
 
 func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*rsp, error) {
-	// todo: 开始前检查连接状况
 	if err := conn.sendText(newResponse(125, "Starting a data transport")); err != nil {
 		return newResponse(1, "An error occur when sending text to client", err.Error()), err
 	}
