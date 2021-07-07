@@ -76,7 +76,7 @@ var LIST = &command{
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		if err := conn.sendText(newResponse(125, "Transferring the dir entries.")); err != nil {
-			return newResponse(1, "An error occur when sending text to client", err.Error()), err
+			return newResponse(550, rspTextSendError, err.Error()), err
 		}
 		return conn.writeData(ctx, strings.NewReader(utils.FormatFileList(files)))
 	},
@@ -106,7 +106,7 @@ var RETR = &command{
 		defer cancel()
 
 		if err := conn.sendText(newResponse(125, "Transferring the specify file.")); err != nil {
-			return newResponse(1, "An error occur when sending text to client", err.Error()), err
+			return newResponse(550, rspTextSendError, err.Error()), err
 		}
 		return conn.writeData(ctx, file)
 	},

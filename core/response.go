@@ -37,6 +37,7 @@ var (
 	rspTextWelcome      = "KLL FTP server ready."
 	rspTextTempReceived = "Input password to login."
 	rspTextLoginSuccess = "Login successfully."
+	rspTextSendError    = "An error occur when sending text to client."
 )
 
 var (

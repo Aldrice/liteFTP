@@ -156,7 +156,7 @@ func (conn *Connection) readCommand() (*rsp, error) {
 
 func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*rsp, error) {
 	if err := conn.sendText(newResponse(125, "Starting a data transport")); err != nil {
-		return newResponse(1, "An error occur when sending text to client", err.Error()), err
+		return newResponse(550, rspTextSendError, err.Error()), err
 	}
 	// 等待连接
 	for {
