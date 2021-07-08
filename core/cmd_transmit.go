@@ -24,15 +24,14 @@ var STOR = &command{
 		// 处理路径
 		newPath := conn.processPath(ps[0])
 		if newPath == "" {
-			return newResponse(550, "The pathname wasn't exist or no authorization to process."), nil
+			return newResponse(550, rspTextPathError), nil
 		}
 		// 打开已有文件 或 新建文件
 		f, err := os.OpenFile(newPath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return newResponse(550, "An error occur when creating or opening the file", err.Error()), err
+			return newResponse(550, "An error occur when creating or opening the file.", err.Error()), nil
 		}
 		defer f.Close()
-
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		return conn.readData(ctx, f)
@@ -53,16 +52,16 @@ var LIST = &command{
 			}
 			exist, err := utils.VerifyPath(ps[0])
 			if err != nil {
-				return newResponse(550, "An error occur when verifying the data", err.Error()), err
+				return newResponse(550, "An error occur when verifying the data.", err.Error()), nil
 			}
 			if !exist {
-				return newResponse(550, "The path wasn't exist or no authorization to process."), err
+				return newResponse(550, rspTextPathError), nil
 			}
 			path = ps[0]
 		}
 		dir, err := os.ReadDir(path)
 		if err != nil {
-			return newResponse(550, "An error occur when opening the dictionary", err.Error()), err
+			return newResponse(550, "An error occur when opening the dictionary.", err.Error()), nil
 		}
 
 		var files []fs.FileInfo
@@ -76,7 +75,7 @@ var LIST = &command{
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		if err := conn.sendText(newResponse(125, "Transferring the dir entries.")); err != nil {
-			return newResponse(550, rspTextSendError, err.Error()), err
+			return newResponse(550, rspTextSendError, err.Error()), nil
 		}
 		return conn.writeData(ctx, strings.NewReader(utils.FormatFileList(files)))
 	},
@@ -95,18 +94,19 @@ var RETR = &command{
 		}
 		newPath := conn.processPath(ps[0])
 		if newPath == "" || utils.IsDir(newPath) {
-			return newResponse(550, "The path wasn't exist or no authorization to process."), nil
+			return newResponse(550, rspTextPathError), nil
 		}
 
 		file, err := os.Open(newPath)
 		if err != nil {
-			return newResponse(450, "An error occur when opening the file", err.Error()), err
+			return newResponse(450, "An error occur when opening the file.", err.Error()), nil
 		}
+		defer file.Close()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 
 		if err := conn.sendText(newResponse(125, "Transferring the specify file.")); err != nil {
-			return newResponse(550, rspTextSendError, err.Error()), err
+			return newResponse(550, rspTextSendError, err.Error()), nil
 		}
 		return conn.writeData(ctx, file)
 	},

@@ -12,9 +12,7 @@
   },
   "srv_cfg": {
     "root_dir": "./file",
-    "enable_utf_8": true,
     "enable_anonymous": true,
-    "enable_passive": true,
-    "binary_flag": false
+    "enable_passive": true
   }
 }

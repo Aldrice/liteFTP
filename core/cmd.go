@@ -5,13 +5,14 @@ type command struct {
 	demandAuth  bool
 	demandLogin bool
 	demandParam bool
+	demandAdmin bool
 	cmdFunction func(conn *Connection, params string) (*rsp, error)
 }
 
 type cmdMap map[string]*command
 
-// todo: 可以选用标准指令集
-var cmdList = []*command{
+//  标准指令集
+var stdCMD = []*command{
 	// auth
 	USER,
 	PASS,
@@ -39,6 +40,20 @@ var cmdList = []*command{
 	RETR,
 	// extend
 	SITE,
+}
+
+// 服务器自定义指令集
+var udmCMD = []*command{
+	// all
+	siteHELP,
+	siteREGT,
+	// user
+	sitePSWD,
+	siteMSGE,
+	// admin
+	siteREAD,
+	siteLIST,
+	siteUSER,
 }
 
 func loadAllCommands(commands []*command) cmdMap {

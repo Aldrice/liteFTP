@@ -26,9 +26,6 @@ type portCfg struct {
 type srvCfg struct {
 	RootDir string `json:"root_dir"`
 
-	EnableUTF8      bool `json:"enable_utf_8"`
 	EnableAnonymous bool `json:"enable_anonymous"`
 	EnablePassive   bool `json:"enable_passive"`
-
-	BinaryFlag bool `json:"binary_flag"`
 }

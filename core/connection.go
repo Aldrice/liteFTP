@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+// todo: log生成的格式化
+
 // 连接的ID号
 var cid = 0
 
@@ -54,12 +56,16 @@ func (conn *Connection) handle() {
 		// 读指令
 		res, err := conn.readCommand()
 		if err != nil && res == nil {
-			_ = conn.linkConn.Close()
+			conn.close()
+			return
+		}
+		if res == nil {
+			conn.close()
 			return
 		}
 		log.Printf("rsp: %d %s", res.code, res.info)
 		if err := conn.sendText(res); err != nil {
-			_ = conn.linkConn.Close()
+			conn.close()
 			return
 		}
 	}
@@ -99,9 +105,8 @@ func (conn *Connection) establishConn(addr *net.TCPAddr) error {
 
 					<-ctx.Done()
 
-					_ = conn.dataConn.Close()
+					_ = conn.closeDt
 					log.Printf("断开一个连接 - 连接端口: %d", pasvAddr.Port)
-					conn.dataConn = nil
 					conn.pasvAddr = nil
 				}()
 			}
@@ -137,13 +142,13 @@ func (conn *Connection) readCommand() (*rsp, error) {
 	log.Println("request: " + statement)
 	components := strings.SplitN(statement, " ", 2)
 	// 指令匹配
-	c, exist := conn.server.command[strings.ToUpper(components[0])]
+	c, exist := conn.server.stdCommand[strings.ToUpper(components[0])]
 	if !exist {
 		return rspSyntaxError, nil
 	}
 	// 检查是否需要权限
 	if c.demandAuth && (!conn.isLogin || conn.temp == config.Anonymous) {
-		return newResponse(530, "User no auth to execute this command."), nil
+		return newResponse(530, rspTextAuthError), nil
 	}
 	// 检查输入参数数量是否符合要求
 	if c.demandParam {
@@ -157,7 +162,7 @@ func (conn *Connection) readCommand() (*rsp, error) {
 
 func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*rsp, error) {
 	if err := conn.sendText(newResponse(125, "Starting a data transport")); err != nil {
-		return newResponse(550, rspTextSendError, err.Error()), err
+		return newResponse(550, rspTextSendError, err.Error()), nil
 	}
 	// 等待连接
 	for {
@@ -174,7 +179,7 @@ func (conn *Connection) readData(ctx context.Context, wt io.Writer) (*rsp, error
 	// 接收数据
 	size, err := io.Copy(wt, conn.dataConn)
 	if err != nil {
-		return newResponse(451, "An error occur when receiving the data", err.Error()), err
+		return newResponse(451, "An error occur when receiving the data", err.Error()), nil
 	}
 	return newResponse(226, fmt.Sprintf("Receive complete, data size: %d", size)), nil
 }
@@ -195,11 +200,8 @@ func (conn *Connection) writeData(ctx context.Context, rd io.Reader) (*rsp, erro
 	}
 	// 连接断开的处理
 	defer func() {
-		if conn.dataConn != nil {
-			_ = conn.dataConn.Close()
-			log.Printf("断开一个连接 - 连接: %s", conn.dataConn.LocalAddr().String())
-		}
-		conn.dataConn = nil
+		log.Printf("断开一个数据连接 - 连接: %s", conn.dataConn.LocalAddr().String())
+		conn.closeDt()
 	}()
 	// 限定传输数据的缓存为1024KB
 	buf := make([]byte, 1024*1024)
@@ -256,4 +258,16 @@ func (conn *Connection) refreshDir() {
 		conn.authDir = filepath.Join(conn.server.userDir, conn.temp)
 	}
 	conn.workDir = conn.authDir
+}
+
+func (conn *Connection) close() {
+	conn.closeDt()
+	_ = conn.linkConn.Close()
+}
+
+func (conn *Connection) closeDt() {
+	if conn.dataConn != nil {
+		_ = conn.dataConn.Close()
+		conn.dataConn = nil
+	}
 }

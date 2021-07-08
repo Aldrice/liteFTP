@@ -1,13 +1,22 @@
 package datebase
 
 import (
+	"fmt"
+	"github.com/Aldrice/liteFTP/common/config"
 	"github.com/Aldrice/liteFTP/utils"
 	"strings"
 )
 
+type User struct {
+	Uid      int
+	Username string
+	Password string
+	IsAdmin  int
+}
+
 // CreateUser 创建用户
 func (db *SrvDB) CreateUser(username, password string) error {
-	_, err := db.client.Exec("INSERT INTO user(username, password,is_admin) values(?,?,?)",
+	_, err := db.client.Exec("INSERT INTO user(username, password) values(?,?)",
 		strings.ToLower(username),
 		utils.HashStrings(strings.ToLower(password)),
 		0,
@@ -18,13 +27,20 @@ func (db *SrvDB) CreateUser(username, password string) error {
 	return nil
 }
 
-// DeleteUser 删除用户
-func (db *SrvDB) DeleteUser(username string) error {
-	_, err := db.client.Exec("delete from user where username=?", username)
-	if err != nil {
-		return err
+func (u *User) FormatToList() string {
+	isAdmin := "true"
+	if u.IsAdmin == 0 {
+		isAdmin = "false"
 	}
-	return nil
+	format := "\r\n===============\r\n\tUser ID: %d\r\n\tUsername: %s\r\n\tIs Admin: %s\r\n==============="
+	return fmt.Sprintf(format, u.Uid, u.Username, isAdmin)
+}
+
+func FormatUsers(us []User) (text string) {
+	for _, u := range us {
+		text += u.FormatToList()
+	}
+	return text
 }
 
 // VerifyUser 根据用户名和密码检查该用户是否可以登录, 或者根据用户名检查该用户是否存在
@@ -63,4 +79,46 @@ func (db *SrvDB) IsAdmin(username string) (bool, error) {
 	return cnt > 0, nil
 }
 
-// todo: SetAdmin
+// DeleteUser 删除用户
+func (db *SrvDB) DeleteUser(username string) error {
+	_, err := db.client.Exec("delete from user where username=?", strings.ToLower(username))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// SetAdmin 根据用户名设置某个用户为管理员
+func (db *SrvDB) SetAdmin(username string) error {
+	_, err := db.client.Exec("UPDATE user SET is_admin = ? WHERE username = ?", 1, strings.ToLower(username))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ListUsers 列出所有用户ID和其昵称
+func (db *SrvDB) ListUsers(page int) (int, []User, error) {
+	cnt := 0
+	if err := db.client.QueryRow("SELECT COUNT(*) FROM user").Scan(&cnt); err != nil {
+		return 0, nil, err
+	}
+	if cnt > 0 {
+		limit, offset := config.PageSize, utils.TransferPageToOffset(page, config.PageSize, cnt)
+		rows, err := db.client.Query("SELECT * FROM user LIMIT ? OFFSET ?", limit, offset)
+		if err != nil {
+			return 0, nil, err
+		}
+		var us []User
+		for rows.Next() {
+			var u User
+			if err := rows.Scan(&u.Uid, &u.Username, &u.Password, &u.IsAdmin); err != nil {
+				return 0, nil, err
+			}
+			u.Password = ""
+			us = append(us, u)
+		}
+		return cnt, us, nil
+	}
+	return 0, nil, nil
+}

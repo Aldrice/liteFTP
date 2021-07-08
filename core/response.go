@@ -15,7 +15,7 @@ func newResponse(c int, i ...string) *rsp {
 	if len(i) > 1 {
 		return &rsp{
 			code: c,
-			info: fmt.Sprintf("%s\r\nError Message: %s", info, i[1]),
+			info: fmt.Sprintf("%s\r\nError Message: %s\r\n", info, i[1]),
 		}
 	}
 	return &rsp{
@@ -34,13 +34,16 @@ func (r *rsp) formatResponse() string {
 }
 
 var (
+	// 肯定回应
 	rspTextWelcome      = "KLL FTP server ready."
 	rspTextTempReceived = "Input password to login."
 	rspTextLoginSuccess = "Login successfully."
-
-	rspTextSendError = "An error occur when sending text to client."
-	rspDataBaseError = "An error occur when processing the database."
-	rspProcessError  = "An error occur when server handle os process."
+	// 否定回应
+	rspTextPathError     = "The pathname wasn't exist or no authorization to process."
+	rspTextSendError     = "An error occur when sending text to client."
+	rspTextDataBaseError = "An error occur when processing the database."
+	rspTextProcessError  = "An error occur when server handle os process."
+	rspTextAuthError     = "You have no authorization to use this command."
 )
 
 var (

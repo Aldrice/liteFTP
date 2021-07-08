@@ -25,12 +25,12 @@ var USER = &command{
 			// 若用户不为匿名用户, 则检查该用户是否存在
 			exist, err := conn.server.srvDB.VerifyUser(username)
 			if err != nil {
-				return newResponse(530, rspDataBaseError, err.Error()), err
+				return newResponse(530, rspTextDataBaseError, err.Error()), nil
 			}
 			if !exist {
 				return newResponse(
 					530,
-					"The user is not exist in this FTP server.\nUse SITE PSWD -password to register a new user as this name.",
+					"The user is not exist in this FTP server.\r\nUse SITE PSWD -password to register a new user as this name.",
 				), nil
 			}
 		}
@@ -62,14 +62,14 @@ var PASS = &command{
 		default:
 			exist, err := conn.server.srvDB.VerifyUser(conn.temp, params)
 			if err != nil {
-				return newResponse(530, rspDataBaseError, err.Error()), err
+				return newResponse(530, rspTextDataBaseError, err.Error()), nil
 			}
 			if !exist {
 				return newResponse(530, "The password is not match with this user."), nil
 			}
 			isAdmin, err := conn.server.srvDB.IsAdmin(conn.temp)
 			if err != nil {
-				return newResponse(530, rspDataBaseError, err.Error()), err
+				return newResponse(530, rspTextDataBaseError, err.Error()), nil
 			}
 			if isAdmin {
 				conn.isAdmin = true

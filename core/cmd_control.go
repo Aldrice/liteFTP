@@ -15,22 +15,21 @@ var OPTS = &command{
 	demandLogin: false,
 	demandParam: true,
 	cmdFunction: func(conn *Connection, params string) (*rsp, error) {
-		// todo: 需要完善
-		_, ok := utils.VerifyParams(params, 2)
+		// 参考: https://www.serv-u.com/resource/tutorial/feat-opts-help-stat-nlst-xcup-xcwd-ftp-command#de323b8e-a756-470d-9544-bdab18b5644b
+		ps, ok := utils.VerifyParams(params, 2)
 		if !ok {
 			return rspParamsError, nil
 		}
-		// 参考: https://www.serv-u.com/resource/tutorial/feat-opts-help-stat-nlst-xcup-xcwd-ftp-command#de323b8e-a756-470d-9544-bdab18b5644b
-		if !conn.server.enableUTF8 {
-			return &rsp{
-				code: 202,
-				info: "Server do not allow utf_8 encoding transmission.",
-			}, nil
+		switch ps[0] {
+		case "UTF8":
+			if ps[1] != "ON" {
+				return newResponse(550, "The server only support utf_8 transferring."), nil
+			} else {
+				return newResponse(200, "Server are now transmit with utf_8 encoding."), nil
+			}
+		default:
 		}
-		return &rsp{
-			code: 200,
-			info: "Server are now transmit with utf_8 encoding.",
-		}, nil
+		return rspSyntaxError, nil
 	},
 }
 
@@ -43,7 +42,7 @@ var PASV = &command{
 		conn.isPassive = true
 		err := conn.establishConn(conn.linkConn.LocalAddr().(*net.TCPAddr))
 		if err != nil {
-			return newResponse(421, "An error occur when establishing the connection", err.Error()), err
+			return newResponse(421, "An error occur when establishing the connection.", err.Error()), nil
 		}
 		return newResponse(227,
 			fmt.Sprintf("Entering Passive Mode (%s)", utils.FormatAddr(conn.pasvAddr)),
@@ -57,6 +56,7 @@ var FEAT = &command{
 	demandLogin: false,
 	demandParam: false,
 	cmdFunction: func(conn *Connection, params string) (*rsp, error) {
+
 		return rspSyntaxError, nil
 	},
 }
@@ -96,7 +96,6 @@ var NOOP = &command{
 }
 
 // TYPE 是否开启二进制传输
-// todo: 需要完善
 // 参考: https://cr.yp.to/ftp/type.html
 var TYPE = &command{
 	name:        []string{"TYPE"},
@@ -104,10 +103,14 @@ var TYPE = &command{
 	demandLogin: true,
 	demandParam: true,
 	cmdFunction: func(conn *Connection, params string) (*rsp, error) {
-		if conn.server.binaryFlag {
-			return rspSyntaxError, nil
+		switch strings.ToUpper(strings.TrimSpace(params)) {
+		case "A":
+			return newResponse(200, "ASCII mode on."), nil
+		case "I":
+			return newResponse(200, "Binary mode on."), nil
+		default:
 		}
-		return newResponse(200, "Binary flag off."), nil
+		return rspSyntaxError, nil
 	},
 }
 
@@ -144,10 +147,10 @@ var MKD = &command{
 		// 处理路径
 		newPath := conn.processPath(ps[0])
 		if newPath == "" {
-			return newResponse(550, "The path was not exist or no authorization to be processed."), nil
+			return newResponse(550, rspTextPathError), nil
 		}
 		if err := os.Mkdir(newPath, os.ModePerm); err != nil {
-			return newResponse(550, "An error occur when the server creating the new file", err.Error()), err
+			return newResponse(550, "An error occur when the server creating the new file.", err.Error()), nil
 		}
 		return newResponse(250, "Directory created."), nil
 	},
@@ -208,12 +211,12 @@ var RMD = &command{
 		if newPath == "" || newPath == conn.authDir || newPath == conn.workDir || !utils.IsDir(newPath) {
 			return &rsp{
 				code: 550,
-				info: "The path was not exist or no authorization to be processed.",
+				info: rspTextPathError,
 			}, nil
 		}
 		// 执行删除
 		if err := os.Remove(newPath); err != nil {
-			return newResponse(550, "An error occur when the server removing the specify dictionary", err.Error()), err
+			return newResponse(550, "An error occur when the server removing the specify dictionary.", err.Error()), nil
 		}
 		return newResponse(250, "Directory removed."), nil
 	},
@@ -233,10 +236,10 @@ var DELE = &command{
 		// 处理路径
 		newPath := conn.processPath(ps[0])
 		if newPath == "" || utils.IsDir(newPath) {
-			return newResponse(550, "The file was not exist or no authorization to be processed."), nil
+			return newResponse(550, rspTextPathError), nil
 		}
 		if err := os.Remove(newPath); err != nil {
-			return newResponse(550, "An error occur when the server removing the specify file", err.Error()), err
+			return newResponse(550, "An error occur when the server removing the specify file.", err.Error()), nil
 		}
 		return newResponse(250, "File removed."), nil
 	},
@@ -254,7 +257,7 @@ var PORT = &command{
 			return newResponse(501, "The host port parameter is invalid."), nil
 		}
 		if err := conn.establishConn(addr); err != nil {
-			return newResponse(550, "An error occur when establishing the connection", err.Error()), err
+			return newResponse(550, "An error occur when establishing the connection.", err.Error()), nil
 		}
 		return newResponse(200, "Establishing connection succeed."), nil
 	},
@@ -274,14 +277,14 @@ var SIZE = &command{
 		// 检查文件是否存在以及是否有权限访问
 		newPath := conn.processPath(ps[0])
 		if newPath == "" {
-			return newResponse(550, "The file wasn't exist or no authorization to process."), nil
+			return newResponse(550, rspTextPathError), nil
 		}
 		fileState, err := os.Stat(newPath)
 		if err != nil {
-			return newResponse(550, "An error occur when stating the file", err.Error()), err
+			return newResponse(550, "An error occur when stating the file.", err.Error()), nil
 		}
 		if fileState.IsDir() {
-			return newResponse(550, "The file wasn't exist or no authorization to process."), nil
+			return newResponse(550, rspTextPathError), nil
 		}
 		return newResponse(213, fmt.Sprintf("%d", fileState.Size())), nil
 	},
@@ -301,15 +304,15 @@ var RNFR = &command{
 		// 检查文件是否有权限访问
 		newPath := conn.processPath(ps[0])
 		if newPath == "" {
-			return newResponse(550, "The path wasn't exist or no authorization to process."), nil
+			return newResponse(550, rspTextPathError), nil
 		}
 		// 检查文件或文件夹是否存在
 		exist, err := utils.VerifyPath(newPath)
 		if err != nil {
-			return newResponse(550, "An error occur when verifying the file", err.Error()), err
+			return newResponse(550, "An error occur when verifying the file.", err.Error()), nil
 		}
 		if !exist {
-			return newResponse(550, "The path wasn't exist or no authorization to process."), nil
+			return newResponse(550, rspTextPathError), nil
 		}
 		// 记录原文件或文件夹位置
 		conn.renamePath = newPath
@@ -331,19 +334,19 @@ var RNTO = &command{
 		// 检查文件是否存在以及是否有权限访问
 		newPath := conn.processPath(ps[0])
 		if newPath == "" {
-			return newResponse(550, "The path wasn't exist or no authorization to process."), nil
+			return newResponse(550, rspTextPathError), nil
 		}
 		// 检查现有路径是否已有同名文件
 		exist, err := utils.VerifyPath(newPath)
 		if err != nil {
-			return newResponse(550, "An error occur when verifying the file", err.Error()), err
+			return newResponse(550, "An error occur when verifying the file.", err.Error()), nil
 		}
 		if exist {
 			return newResponse(553, "An file already exist in this path."), nil
 		}
 		// 移动文件或文件夹
 		if err := os.Rename(conn.renamePath, newPath); err != nil {
-			return newResponse(553, "An error occur when renaming the file", err.Error()), err
+			return newResponse(553, "An error occur when renaming the file.", err.Error()), nil
 		}
 		return newResponse(250, "File renamed."), nil
 	},

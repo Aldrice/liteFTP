@@ -14,14 +14,14 @@ import (
 )
 
 type server struct {
-	// 服务器支持的指令集
-	command cmdMap
+	// 服务器支持的通用指令集
+	stdCommand cmdMap
+	// 服务器支持的自定义指令集
+	udmCommand cmdMap
 	// 被动模式下最大端口
 	pasvMaxPort int
 	// 被动模式下最小端口
 	pasvMinPort int
-	// 是否启用UTF8编码通信
-	enableUTF8 bool
 	// 是否允许匿名访问
 	enableAnonymous bool
 	// 服务器根目录基址
@@ -30,8 +30,6 @@ type server struct {
 	userDir string
 	// 服务器系统文件目录基址
 	systDir string
-	// 服务器是否允许二进制传输
-	binaryFlag bool
 	// 数据库对象
 	srvDB *datebase.SrvDB
 }
@@ -42,15 +40,14 @@ func NewServer() *server {
 		log.Fatal("路径转换出错")
 	}
 	s := &server{
-		command:         loadAllCommands(cmdList),
+		stdCommand:      loadAllCommands(stdCMD),
+		udmCommand:      loadAllCommands(udmCMD),
 		pasvMaxPort:     InitCfg.PortCfg.MaxPasvPort,
 		pasvMinPort:     InitCfg.PortCfg.MinPasvPort,
-		enableUTF8:      InitCfg.SrvCfg.EnableUTF8,
 		enableAnonymous: InitCfg.SrvCfg.EnableAnonymous,
 		rootDir:         absPath,
 		userDir:         filepath.Join(absPath, UserPath),
 		systDir:         filepath.Join(absPath, SystPath),
-		binaryFlag:      InitCfg.SrvCfg.BinaryFlag,
 	}
 
 	// 检查服务器的存储路径是否有效
