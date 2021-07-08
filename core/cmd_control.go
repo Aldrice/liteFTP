@@ -56,8 +56,7 @@ var FEAT = &command{
 	demandLogin: false,
 	demandParam: false,
 	cmdFunction: func(conn *Connection, params string) (*rsp, error) {
-
-		return rspSyntaxError, nil
+		return newResponse(221, "Extensions supported:\r\nUTF8\r\n"), nil
 	},
 }
 

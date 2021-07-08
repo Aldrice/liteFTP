@@ -86,7 +86,6 @@ var RETR = &command{
 	demandAuth:  false,
 	demandLogin: true,
 	demandParam: true,
-	// todo: 解决文件名乱码的问题
 	cmdFunction: func(conn *Connection, params string) (*rsp, error) {
 		ps, ok := utils.VerifyParams(params, 1)
 		if !ok {
