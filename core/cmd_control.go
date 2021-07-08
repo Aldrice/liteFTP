@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -39,6 +40,9 @@ var PASV = &command{
 	demandLogin: true,
 	demandParam: false,
 	cmdFunction: func(conn *Connection, params string) (*rsp, error) {
+		if conn.linkConn.LocalAddr().(*net.TCPAddr).IP.To4() == nil {
+			return newResponse(550, "Server does not support IPv6 for command PASV, try EPSV."), nil
+		}
 		conn.isPassive = true
 		err := conn.establishConn(conn.linkConn.LocalAddr().(*net.TCPAddr))
 		if err != nil {
@@ -348,5 +352,61 @@ var RNTO = &command{
 			return newResponse(553, "An error occur when renaming the file.", err.Error()), nil
 		}
 		return newResponse(250, "File renamed."), nil
+	},
+}
+
+var EPSV = &command{
+	name:        []string{"EPSV"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: true,
+	demandAdmin: false,
+	cmdFunction: func(conn *Connection, params string) (*rsp, error) {
+		conn.isPassive = true
+		err := conn.establishConn(conn.linkConn.LocalAddr().(*net.TCPAddr))
+		if err != nil {
+			return newResponse(550, "An error occur when establishing the connection.", err.Error()), nil
+		}
+		return newResponse(229,
+			fmt.Sprintf("Entering Extended Passive Mode: %s", conn.pasvAddr.String()),
+		), nil
+	},
+}
+
+var EPRT = &command{
+	name:        []string{"EPRT"},
+	demandAuth:  false,
+	demandLogin: true,
+	demandParam: true,
+	demandAdmin: false,
+	cmdFunction: func(conn *Connection, params string) (*rsp, error) {
+		items := strings.Split(params, "|")
+		if len(items) != 5 || items[0] != "" || items[4] != "" {
+			return rspParamsError, nil
+		}
+
+		// 解析IP地址
+		var ip net.IP
+		switch items[1] {
+		case "1":
+		case "2":
+			ip = net.ParseIP(items[2])
+			if ip == nil {
+				return newResponse(501, "Syntax error in IP address."), nil
+			}
+		default:
+			return newResponse(522, "Server not support this protocol."), nil
+		}
+
+		port, err := strconv.Atoi(items[3])
+		if err != nil || port <= 0 || port > 65535 {
+			return newResponse(501, "Syntax error in port."), nil
+		}
+
+		addr := &net.TCPAddr{IP: ip, Port: port}
+		if err := conn.establishConn(addr); err != nil {
+			return newResponse(425, fmt.Sprintf("Failed to establish connection: %s", addr.String()), err.Error()), nil
+		}
+		return newResponse(200, "Establishing connection succeed."), nil
 	},
 }

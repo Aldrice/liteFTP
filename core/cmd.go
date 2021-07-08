@@ -21,16 +21,16 @@ var stdCMD = []*command{
 	PASV,
 	FEAT,
 	QUIT,
-	PWD,
 	SYST,
 	NOOP,
 	TYPE,
+	PORT,
+	PWD,
 	CDUP,
 	RMD,
 	MKD,
 	CWD,
 	DELE,
-	PORT,
 	SIZE,
 	RNFR,
 	RNTO,
@@ -40,6 +40,8 @@ var stdCMD = []*command{
 	RETR,
 	// extend
 	SITE,
+	EPRT,
+	EPSV,
 }
 
 // 服务器自定义指令集

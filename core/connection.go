@@ -50,6 +50,7 @@ func (conn *Connection) handle() {
 
 	if err := conn.sendText(newResponse(220, rspTextWelcome)); err != nil {
 		log.Print("出错了")
+		return
 	}
 
 	for {
@@ -105,7 +106,7 @@ func (conn *Connection) establishConn(addr *net.TCPAddr) error {
 
 					<-ctx.Done()
 
-					_ = conn.closeDt
+					_ = conn.closeDataLink
 					log.Printf("断开一个连接 - 连接端口: %d", pasvAddr.Port)
 					conn.pasvAddr = nil
 				}()
@@ -201,7 +202,7 @@ func (conn *Connection) writeData(ctx context.Context, rd io.Reader) (*rsp, erro
 	// 连接断开的处理
 	defer func() {
 		log.Printf("断开一个数据连接 - 连接: %s", conn.dataConn.LocalAddr().String())
-		conn.closeDt()
+		conn.closeDataLink()
 	}()
 	// 限定传输数据的缓存为1024KB
 	buf := make([]byte, 1024*1024)
@@ -261,11 +262,11 @@ func (conn *Connection) refreshDir() {
 }
 
 func (conn *Connection) close() {
-	conn.closeDt()
+	conn.closeDataLink()
 	_ = conn.linkConn.Close()
 }
 
-func (conn *Connection) closeDt() {
+func (conn *Connection) closeDataLink() {
 	if conn.dataConn != nil {
 		_ = conn.dataConn.Close()
 		conn.dataConn = nil
